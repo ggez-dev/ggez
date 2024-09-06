@@ -235,7 +235,7 @@ pub fn set_cursor_hidden(ctx: &mut Context, hidden: bool) {
 // TODO: Move to graphics context (This isn't input)
 pub fn set_cursor_type(ctx: &mut Context, cursor_type: CursorIcon) {
     ctx.mouse.cursor_type = cursor_type;
-    ctx.gfx.window.set_cursor_icon(cursor_type);
+    ctx.gfx.window.set_cursor(cursor_type);
 }
 
 /// Get whether or not the mouse is grabbed.

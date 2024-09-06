@@ -204,7 +204,7 @@ impl GraphicsContext {
         conf: &Conf,
         filesystem: &Filesystem,
     ) -> GameResult<Self> {
-        let mut window_builder = winit::window::WindowBuilder::new()
+        let mut window_builder = winit::window::Window::default_attributes()
             .with_title(conf.window_setup.title.clone())
             .with_inner_size(conf.window_mode.actual_size().unwrap()) // Unwrap since actual_size only fails if one of the window dimensions is less than 1
             .with_resizable(conf.window_mode.resizable)
@@ -220,19 +220,21 @@ impl GraphicsContext {
         ))]
         {
             {
-                use winit::platform::x11::WindowBuilderExtX11;
+                use winit::platform::x11::WindowAttributesExtX11;
                 window_builder = window_builder.with_name(game_id, game_id);
             }
             {
-                use winit::platform::wayland::WindowBuilderExtWayland;
+                use winit::platform::wayland::WindowAttributesExtWayland;
                 window_builder = window_builder.with_name(game_id, game_id);
             }
         }
 
         #[cfg(target_os = "windows")]
         {
-            use winit::platform::windows::WindowBuilderExtWindows;
-            window_builder = window_builder.with_drag_and_drop(false);
+            use winit::platform::windows::WindowAttributesExtWindows;
+            window_builder = window_builder
+                .with_drag_and_drop(false)
+                .with_clip_children(false);
         }
 
         window_builder = if !conf.window_setup.icon.is_empty() {
@@ -242,7 +244,10 @@ impl GraphicsContext {
             window_builder
         };
 
-        let window = Arc::new(window_builder.build(event_loop)?);
+        // TODO remove deprecated create_window usage
+        // In order to do this, we need to switch window creation to a point inside the active event loop instead of before.
+        #[allow(deprecated)]
+        let window = Arc::new(event_loop.create_window(window_builder)?);
         let surface = instance
             .create_surface(window.clone())
             .map_err(|_| GameError::GraphicsInitializationError)?;
