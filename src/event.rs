@@ -727,7 +727,11 @@ where
     }
 }
 
-pub(crate) fn process_device_event<C>(ctx: &mut C, _: &mut DeviceId, event: &mut DeviceEvent)
+/// Feeds a `DeviceEvent` into the `Context` so it can update any internal
+/// state it needs to, such as detecting mouse movements.  If you are
+/// rolling your own event loop, you should call this on the events you
+/// receive before processing them yourself.
+pub fn process_device_event<C>(ctx: &mut C, _: &mut DeviceId, event: &mut DeviceEvent)
 where
     C: HasMut<input::mouse::MouseContext>,
 {
@@ -737,7 +741,11 @@ where
     }
 }
 
-pub(crate) fn process_window_event<C>(ctx: &mut C, _: &mut WindowId, event: &mut WindowEvent)
+/// Feeds a `WindowEvent` into the `Context` so it can update any internal
+/// state it needs to, such as detecting window resizes.  If you are
+/// rolling your own event loop, you should call this on the events you
+/// receive before processing them yourself.
+pub fn process_window_event<C>(ctx: &mut C, _: &mut WindowId, event: &mut WindowEvent)
 where
     C: HasMut<ContextFields>
         + HasMut<GraphicsContext>
