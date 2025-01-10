@@ -318,6 +318,11 @@ impl<'a> InternalCanvas<'a> {
     #[allow(unsafe_code)]
     pub fn draw_mesh(&mut self, mesh: &'a Mesh, image: &Image, param: DrawParam, scale: bool) {
         self.flush_text();
+
+        if mesh.index_count == 0 {
+            return;
+        }
+
         self.update_pipeline(ShaderType::Draw);
 
         let alloc_size = DrawUniforms::std140_size_static() as u64;
@@ -378,7 +383,7 @@ impl<'a> InternalCanvas<'a> {
     ) -> GameResult {
         self.flush_text();
 
-        if instances.len == 0 {
+        if instances.len == 0 || mesh.index_count == 0 {
             return Ok(());
         }
 
