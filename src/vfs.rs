@@ -960,7 +960,7 @@ mod tests {
             let mut zip_archive = zip::ZipWriter::new(zip_bytes);
 
             zip_archive
-                .start_file("fake_file_name.txt", zip::write::FileOptions::default())
+                .start_file::<&str, zip::write::ExtendedFileOptions>("fake_file_name.txt", zip::write::FileOptions::default())
                 .unwrap();
             let _bytes = zip_archive.write(b"Zip contents!").unwrap();
             zip_archive.finish().unwrap()
