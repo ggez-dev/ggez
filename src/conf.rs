@@ -413,14 +413,14 @@ impl Conf {
     pub fn from_toml_file<R: io::Read>(file: &mut R) -> GameResult<Conf> {
         let mut s = String::new();
         let _ = file.read_to_string(&mut s)?;
-        let decoded = toml::from_str(&s)?;
+        let decoded = toml_edit::de::from_str(&s)?;
         Ok(decoded)
     }
 
     /// Saves the `Conf` to the given `Write` object,
     /// formatted as TOML.
     pub fn to_toml_file<W: io::Write>(&self, file: &mut W) -> GameResult {
-        let s = toml::to_vec(self)?;
+        let s = toml_edit::ser::to_vec(self)?;
         file.write_all(&s)?;
         Ok(())
     }
