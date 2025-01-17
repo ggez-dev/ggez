@@ -138,7 +138,7 @@ impl Image {
         wgpu.queue.write_texture(
             image.texture.as_image_copy(),
             pixels,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(format.block_copy_size(None).unwrap() * width), // Unwrap since it only fails with depth formats.
                 rows_per_image: None,
@@ -218,6 +218,7 @@ impl Image {
                 mip_level_count: Some(1),
                 base_array_layer: 0,
                 array_layer_count: Some(1),
+                usage: None,
             }));
 
         Image {
@@ -271,9 +272,9 @@ impl Image {
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
             encoder.copy_texture_to_buffer(
                 self.texture.as_image_copy(),
-                wgpu::ImageCopyBuffer {
+                wgpu::TexelCopyBufferInfo {
                     buffer: &buffer,
-                    layout: wgpu::ImageDataLayout {
+                    layout: wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(padded_bytes_per_row as u32),
                         rows_per_image: None,

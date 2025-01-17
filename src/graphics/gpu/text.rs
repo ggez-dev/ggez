@@ -104,7 +104,7 @@ impl TextRenderer {
         let res = self.glyph_brush.borrow_mut().process_queued(
             |rect, pixels| {
                 queue.write_texture(
-                    wgpu::ImageCopyTexture {
+                    wgpu::TexelCopyTextureInfo {
                         texture: &self.cache,
                         mip_level: 0,
                         origin: wgpu::Origin3d {
@@ -115,7 +115,7 @@ impl TextRenderer {
                         aspect: wgpu::TextureAspect::All,
                     },
                     pixels,
-                    wgpu::ImageDataLayout {
+                    wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(rect.width()),
                         rows_per_image: None,
