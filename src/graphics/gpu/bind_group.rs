@@ -75,16 +75,14 @@ impl BindGroupLayoutBuilder {
     ) -> wgpu::BindGroupLayout {
         cache
             .layouts
-            .entry((self.entries.clone(), self.seed))
-            .or_insert_with(|| self.create_uncached(device))
+            .entry((self.entries, self.seed))
+            .or_insert_with_key(|(entries, _)| {
+                device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: None,
+                    entries,
+                })
+            })
             .clone()
-    }
-
-    pub fn create_uncached(self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            entries: &self.entries,
-        })
     }
 }
 
@@ -203,7 +201,10 @@ impl<'a> BindGroupBuilder<'a> {
         self,
         device: &wgpu::Device,
     ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
-        let layout = self.layout.create_uncached(device);
+        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &self.layout.entries,
+        });
         let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &layout,
