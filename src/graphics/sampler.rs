@@ -128,7 +128,7 @@ impl SamplerCache {
     pub fn get(&mut self, device: &wgpu::Device, sampler: Sampler) -> ArcSampler {
         self.cache
             .entry(sampler)
-            .or_insert_with(|| ArcSampler::new(device.create_sampler(&sampler.into())))
+            .or_insert_with(|| device.create_sampler(&sampler.into()))
             .clone()
     }
 }

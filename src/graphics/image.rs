@@ -32,7 +32,7 @@ pub struct Image {
     pub(crate) width: u32,
     pub(crate) height: u32,
     pub(crate) samples: u32,
-    pub(crate) cache: Arc<RwLock<BTreeMap<u64, ArcBindGroup>>>,
+    pub(crate) cache: Arc<RwLock<BTreeMap<wgpu::Sampler, ArcBindGroup>>>,
 }
 
 impl Image {
@@ -193,7 +193,7 @@ impl Image {
         assert!(height > 0);
         assert!(samples > 0);
 
-        let texture = ArcTexture::new(wgpu.device.create_texture(&wgpu::TextureDescriptor {
+        let texture = wgpu.device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
                 width,
@@ -206,20 +206,19 @@ impl Image {
             format,
             usage,
             view_formats: &[],
-        }));
+        });
 
-        let view =
-            ArcTextureView::new(texture.as_ref().create_view(&wgpu::TextureViewDescriptor {
-                label: None,
-                format: Some(format),
-                dimension: Some(wgpu::TextureViewDimension::D2),
-                aspect: wgpu::TextureAspect::All,
-                base_mip_level: 0,
-                mip_level_count: Some(1),
-                base_array_layer: 0,
-                array_layer_count: Some(1),
-                usage: None,
-            }));
+        let view = texture.create_view(&wgpu::TextureViewDescriptor {
+            label: None,
+            format: Some(format),
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            aspect: wgpu::TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: Some(1),
+            base_array_layer: 0,
+            array_layer_count: Some(1),
+            usage: None,
+        });
 
         Image {
             texture,
@@ -386,14 +385,9 @@ impl Image {
         }
     }
 
-    pub(crate) fn fetch_buffer(
-        &self,
-        sample_id: u64,
-        sampler: ArcSampler,
-        device: &wgpu::Device,
-    ) -> ArcBindGroup {
+    pub(crate) fn fetch_buffer(&self, sampler: ArcSampler, device: &wgpu::Device) -> ArcBindGroup {
         // Fast path: already in cache
-        if let Some(buffer) = self.cache.read().unwrap().get(&sample_id) {
+        if let Some(buffer) = self.cache.read().unwrap().get(&sampler) {
             return buffer.clone();
         }
 
@@ -401,11 +395,11 @@ impl Image {
         self.cache
             .write()
             .unwrap()
-            .entry(sample_id)
-            .or_insert_with(|| {
+            .entry(sampler)
+            .or_insert_with_key(|sampler| {
                 BindGroupBuilder::new()
                     .image(&self.view, wgpu::ShaderStages::FRAGMENT)
-                    .sampler(&sampler, wgpu::ShaderStages::FRAGMENT)
+                    .sampler(sampler, wgpu::ShaderStages::FRAGMENT)
                     .create_uncached(device)
                     .0
             })

@@ -77,16 +77,16 @@ impl InstanceArray {
     ) -> Self {
         assert!(capacity > 0);
 
-        let buffer = ArcBuffer::new(wgpu.device.create_buffer(&wgpu::BufferDescriptor {
+        let buffer = wgpu.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: DrawUniforms::std140_size_static() as u64 * capacity as u64,
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_DST
                 | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
-        }));
+        });
 
-        let indices = ArcBuffer::new(wgpu.device.create_buffer(&wgpu::BufferDescriptor {
+        let indices = wgpu.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: if ordered {
                 std::mem::size_of::<u32>() as u64 * capacity as u64
@@ -97,7 +97,7 @@ impl InstanceArray {
                 | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
-        }));
+        });
 
         let bind_group = BindGroupBuilder::new()
             .buffer(
@@ -116,12 +116,11 @@ impl InstanceArray {
                 false,
                 None,
             );
-        let bind_group =
-            ArcBindGroup::new(wgpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &bind_layout,
-                entries: bind_group.entries(),
-            }));
+        let bind_group = wgpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &bind_layout,
+            entries: bind_group.entries(),
+        });
 
         let uniforms = Vec::with_capacity(capacity);
         let params = Vec::with_capacity(capacity);

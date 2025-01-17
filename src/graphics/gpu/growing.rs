@@ -20,7 +20,7 @@ impl GrowingBufferArena {
         desc: wgpu::BufferDescriptor<'static>,
     ) -> Self {
         GrowingBufferArena {
-            buffers: vec![(ArcBuffer::new(device.create_buffer(&desc)), 0)],
+            buffers: vec![(device.create_buffer(&desc), 0)],
             alignment,
             desc,
         }
@@ -53,8 +53,7 @@ impl GrowingBufferArena {
     }
 
     fn grow(&mut self, device: &wgpu::Device) {
-        self.buffers
-            .push((ArcBuffer::new(device.create_buffer(&self.desc)), 0));
+        self.buffers.push((device.create_buffer(&self.desc), 0));
     }
 }
 

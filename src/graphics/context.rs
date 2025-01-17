@@ -164,8 +164,8 @@ impl GraphicsContext {
         sampler: ArcSampler,
     ) -> (ArcBindGroup, ArcBindGroupLayout) {
         let key = [
-            BindGroupEntryKey::Image { id: view.id() },
-            BindGroupEntryKey::Sampler { id: sampler.id() },
+            BindGroupEntryKey::Image(view.clone()),
+            BindGroupEntryKey::Sampler(sampler.clone()),
         ];
         let layout = BindGroupLayoutBuilder::new()
             .image(wgpu::ShaderStages::FRAGMENT)
@@ -175,22 +175,23 @@ impl GraphicsContext {
         let bind_group = match &self.bind_group {
             Some((old_key, bind_group)) if old_key == &key => bind_group.clone(),
             _ => {
-                let bind_group = ArcBindGroup::new(self.wgpu.device.create_bind_group(
-                    &wgpu::BindGroupDescriptor {
+                let bind_group = self
+                    .wgpu
+                    .device
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
                         label: None,
-                        layout: layout.as_ref(),
+                        layout: &layout,
                         entries: &[
                             wgpu::BindGroupEntry {
                                 binding: 0,
-                                resource: wgpu::BindingResource::TextureView(view.as_ref()),
+                                resource: wgpu::BindingResource::TextureView(&view),
                             },
                             wgpu::BindGroupEntry {
                                 binding: 1,
-                                resource: wgpu::BindingResource::Sampler(sampler.as_ref()),
+                                resource: wgpu::BindingResource::Sampler(&sampler),
                             },
                         ],
-                    },
-                ));
+                    });
                 self.bind_group = Some((key, bind_group.clone()));
                 bind_group
             }
@@ -727,9 +728,8 @@ impl GraphicsContext {
             let layout = self.pipeline_cache.layout(&self.wgpu.device, &[layout]);
             let copy = self.pipeline_cache.render_pipeline(
                 &self.wgpu.device,
-                &layout,
                 RenderPipelineInfo {
-                    layout_id: layout.id(),
+                    layout,
                     vs: self.copy_shader.clone(),
                     fs: self.copy_shader.clone(),
                     vs_entry: "vs_main".into(),
@@ -749,7 +749,7 @@ impl GraphicsContext {
             let bind = fcx.arenas.bind_groups.alloc(bind);
 
             present_pass.set_pipeline(copy);
-            present_pass.set_bind_group(0, &**bind, &[]);
+            present_pass.set_bind_group(0, &*bind, &[]);
             present_pass.draw(0..3, 0..1);
 
             std::mem::drop(present_pass);

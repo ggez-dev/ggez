@@ -225,26 +225,22 @@ impl Mesh {
 
     #[allow(unsafe_code)]
     fn create_verts(wgpu: &WgpuContext, vertices: &[Vertex]) -> ArcBuffer {
-        ArcBuffer::new(
-            wgpu.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(vertices),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                }),
-        )
+        wgpu.device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(vertices),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            })
     }
 
     #[allow(unsafe_code)]
     fn create_inds(wgpu: &WgpuContext, indices: &[u32]) -> ArcBuffer {
-        ArcBuffer::new(
-            wgpu.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(indices),
-                    usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-                }),
-        )
+        wgpu.device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(indices),
+                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            })
     }
 }
 

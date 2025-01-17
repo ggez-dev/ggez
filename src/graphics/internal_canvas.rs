@@ -71,7 +71,7 @@ impl<'a> InternalCanvas<'a> {
             cmd.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: image.view.as_ref(),
+                    view: &image.view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: match clear.into() {
@@ -116,8 +116,8 @@ impl<'a> InternalCanvas<'a> {
             cmd.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: msaa_image.view.as_ref(),
-                    resolve_target: Some(resolve_image.view.as_ref()),
+                    view: &msaa_image.view,
+                    resolve_target: Some(&resolve_image.view),
                     ops: wgpu::Operations {
                         load: match clear.into() {
                             None => wgpu::LoadOp::Load,
@@ -363,7 +363,7 @@ impl<'a> InternalCanvas<'a> {
 
         self.pass.set_bind_group(
             0,
-            &**self.arenas.bind_groups.alloc(uniform_bind_group),
+            &*self.arenas.bind_groups.alloc(uniform_bind_group),
             &[uniform_alloc.offset as u32], // <- the dynamic offset
         );
 
@@ -437,10 +437,10 @@ impl<'a> InternalCanvas<'a> {
 
         self.pass.set_bind_group(
             0,
-            &**self.arenas.bind_groups.alloc(uniform_bind_group),
+            &*self.arenas.bind_groups.alloc(uniform_bind_group),
             &[uniform_alloc.offset as u32],
         );
-        self.pass.set_bind_group(2, &*instances.bind_group, &[]);
+        self.pass.set_bind_group(2, &instances.bind_group, &[]);
 
         self.pass.set_vertex_buffer(0, mesh.verts.slice(..));
         self.pass
@@ -480,7 +480,7 @@ impl<'a> InternalCanvas<'a> {
 
         self.pass.set_bind_group(
             0,
-            &**self.arenas.bind_groups.alloc(text_uniforms_bind),
+            &*self.arenas.bind_groups.alloc(text_uniforms_bind),
             &[self.text_uniforms.offset as u32],
         );
 
@@ -561,7 +561,7 @@ impl<'a> InternalCanvas<'a> {
                 // the dummy group ensures the user's bind group is at index 3
                 groups.push(dummy_layout);
                 self.pass
-                    .set_bind_group(2, &**self.arenas.bind_groups.alloc(dummy_group), &[]);
+                    .set_bind_group(2, &*self.arenas.bind_groups.alloc(dummy_group), &[]);
             }
 
             let shader = match ty {
@@ -593,9 +593,8 @@ impl<'a> InternalCanvas<'a> {
                 .render_pipelines
                 .alloc(self.pipeline_cache.render_pipeline(
                     &self.wgpu.device,
-                    layout.as_ref(),
                     RenderPipelineInfo {
-                        layout_id: layout.id(),
+                        layout,
                         vs: if let Some(vs_module) = &shader.vs_module {
                             vs_module.clone()
                         } else {
@@ -652,25 +651,22 @@ impl<'a> InternalCanvas<'a> {
             || self
                 .curr_image
                 .as_ref()
-                .map_or(true, |curr| curr.id() != image.view.id())
+                .map_or(true, |curr| *curr != image.view)
         {
             self.curr_sampler = self.next_sampler;
             let sample = self.sampler_cache.get(&self.wgpu.device, self.curr_sampler);
-            let image_bind = image.fetch_buffer(sample.id(), sample, &self.wgpu.device);
+            let image_bind = image.fetch_buffer(sample, &self.wgpu.device);
 
             self.curr_image = Some(image.view);
 
             self.pass
-                .set_bind_group(1, &**self.arenas.bind_groups.alloc(image_bind), &[]);
+                .set_bind_group(1, &*self.arenas.bind_groups.alloc(image_bind), &[]);
         }
     }
 
     fn set_text_image(&mut self, view: ArcTextureView) {
         if self.curr_sampler != self.next_sampler
-            || self
-                .curr_image
-                .as_ref()
-                .map_or(true, |curr| curr.id() != view.id())
+            || self.curr_image.as_ref().map_or(true, |curr| *curr != view)
         {
             self.curr_sampler = self.next_sampler;
 
@@ -685,7 +681,7 @@ impl<'a> InternalCanvas<'a> {
             self.curr_image = Some(view);
 
             self.pass
-                .set_bind_group(1, &**self.arenas.bind_groups.alloc(image_bind), &[]);
+                .set_bind_group(1, &*self.arenas.bind_groups.alloc(image_bind), &[]);
         }
     }
 }
