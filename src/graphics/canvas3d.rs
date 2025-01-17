@@ -7,7 +7,6 @@ use crate::{
 };
 
 use super::{
-    gpu::arc::{ArcBindGroup, ArcBindGroupLayout},
     internal_canvas3d::{screen_to_mat, InstanceArrayView3d, InternalCanvas3d},
     BlendMode, Color, DrawParam3d, Drawable3d, GraphicsContext, Image, Mesh3d, Rect, Sampler,
     ScreenImage, Shader, ShaderParams, WgpuContext,
@@ -455,7 +454,7 @@ impl Canvas3d {
 #[derive(Debug, Clone)]
 pub(crate) struct DrawState3d {
     shader: Shader,
-    params: Option<(ArcBindGroup, ArcBindGroupLayout, u32)>,
+    params: Option<(wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
     sampler: Sampler,
     pub(crate) projection: mint::ColumnMatrix4<f32>,
     alpha_mode: AlphaMode,

@@ -1,4 +1,3 @@
-use super::gpu::arc::ArcSampler;
 use std::collections::HashMap;
 
 /// Sampler state that is used when sampling images on the GPU.
@@ -115,7 +114,7 @@ impl From<FilterMode> for wgpu::FilterMode {
 
 #[derive(Debug)]
 pub(crate) struct SamplerCache {
-    cache: HashMap<Sampler, ArcSampler>,
+    cache: HashMap<Sampler, wgpu::Sampler>,
 }
 
 impl SamplerCache {
@@ -125,7 +124,7 @@ impl SamplerCache {
         }
     }
 
-    pub fn get(&mut self, device: &wgpu::Device, sampler: Sampler) -> ArcSampler {
+    pub fn get(&mut self, device: &wgpu::Device, sampler: Sampler) -> wgpu::Sampler {
         self.cache
             .entry(sampler)
             .or_insert_with(|| device.create_sampler(&sampler.into()))

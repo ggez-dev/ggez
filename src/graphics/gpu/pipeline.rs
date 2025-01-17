@@ -1,12 +1,14 @@
-use super::arc::{ArcBindGroupLayout, ArcPipelineLayout, ArcRenderPipeline, ArcShaderModule};
-use std::collections::{hash_map::DefaultHasher, HashMap};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    sync::Arc,
+};
 
 /// Hashable representation of a render pipeline, used as a key in the HashMap cache.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderPipelineInfo {
-    pub layout: ArcPipelineLayout,
-    pub vs: ArcShaderModule,
-    pub fs: ArcShaderModule,
+    pub layout: wgpu::PipelineLayout,
+    pub vs: Arc<wgpu::ShaderModule>,
+    pub fs: Arc<wgpu::ShaderModule>,
     pub vs_entry: String,
     pub fs_entry: String,
     pub samples: u32,
@@ -22,8 +24,8 @@ pub struct RenderPipelineInfo {
 /// Caches both the pipeline *and* the pipeline layout.
 #[derive(Debug)]
 pub struct PipelineCache {
-    pipelines: HashMap<RenderPipelineInfo, ArcRenderPipeline>,
-    layouts: HashMap<u64, ArcPipelineLayout>,
+    pipelines: HashMap<RenderPipelineInfo, wgpu::RenderPipeline>,
+    layouts: HashMap<u64, wgpu::PipelineLayout>,
 }
 
 impl PipelineCache {
@@ -38,7 +40,7 @@ impl PipelineCache {
         &mut self,
         device: &wgpu::Device,
         info: RenderPipelineInfo,
-    ) -> ArcRenderPipeline {
+    ) -> wgpu::RenderPipeline {
         let vertex_buffers = [info.vertex_layout.clone()];
 
         self.pipelines
@@ -94,8 +96,8 @@ impl PipelineCache {
     pub fn layout(
         &mut self,
         device: &wgpu::Device,
-        bind_groups: &[ArcBindGroupLayout],
-    ) -> ArcPipelineLayout {
+        bind_groups: &[wgpu::BindGroupLayout],
+    ) -> wgpu::PipelineLayout {
         let key = {
             use std::hash::{Hash, Hasher};
             let mut h = DefaultHasher::new();

@@ -6,7 +6,6 @@ use crate::{
 };
 
 use super::{
-    gpu::arc::{ArcBindGroup, ArcBindGroupLayout},
     internal_canvas::{screen_to_mat, InstanceArrayView, InternalCanvas},
     BlendMode, Color, DrawParam, Drawable, GraphicsContext, Image, InstanceArray, Mesh, Rect,
     Sampler, ScreenImage, Shader, ShaderParams, Text, WgpuContext,
@@ -544,9 +543,9 @@ impl Canvas {
 #[derive(Debug, Clone)]
 struct DrawState {
     shader: Shader,
-    params: Option<(ArcBindGroup, ArcBindGroupLayout, u32)>,
+    params: Option<(wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
     text_shader: Shader,
-    text_params: Option<(ArcBindGroup, ArcBindGroupLayout, u32)>,
+    text_params: Option<(wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
     sampler: Sampler,
     blend_mode: BlendMode,
     premul_text: bool,

@@ -1,11 +1,8 @@
 use crate::{context::Has, graphics::gpu::bind_group::BindGroupBuilder, GameError, GameResult};
 
 use super::{
-    context::GraphicsContext,
-    gpu::arc::{ArcBindGroup, ArcBindGroupLayout, ArcBuffer},
-    internal_canvas3d::InstanceArrayView3d,
-    Canvas3d, Draw3d, DrawParam3d, DrawUniforms3d, Drawable3d, Image, Mesh3d, Std140DrawUniforms3d,
-    WgpuContext,
+    context::GraphicsContext, internal_canvas3d::InstanceArrayView3d, Canvas3d, Draw3d,
+    DrawParam3d, DrawUniforms3d, Drawable3d, Image, Mesh3d, Std140DrawUniforms3d, WgpuContext,
 };
 use crevice::std140::AsStd140;
 use std::{
@@ -21,10 +18,10 @@ const DEFAULT_CAPACITY: usize = 16;
 /// Array of instances for fast rendering of many meshes.
 #[derive(Debug)]
 pub struct InstanceArray3d {
-    pub(crate) buffer: Mutex<ArcBuffer>,
-    pub(crate) indices: Mutex<ArcBuffer>,
-    pub(crate) bind_group: Mutex<ArcBindGroup>,
-    pub(crate) bind_layout: ArcBindGroupLayout,
+    pub(crate) buffer: Mutex<wgpu::Buffer>,
+    pub(crate) indices: Mutex<wgpu::Buffer>,
+    pub(crate) bind_group: Mutex<wgpu::BindGroup>,
+    pub(crate) bind_layout: wgpu::BindGroupLayout,
     pub(crate) image: Image,
     pub(crate) mesh: Mesh3d,
     pub(crate) ordered: bool,
@@ -79,7 +76,7 @@ impl InstanceArray3d {
 
     fn new_wgpu(
         wgpu: &WgpuContext,
-        bind_layout: ArcBindGroupLayout,
+        bind_layout: wgpu::BindGroupLayout,
         image: Image,
         capacity: usize,
         ordered: bool,

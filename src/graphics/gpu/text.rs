@@ -1,8 +1,4 @@
-use super::{
-    arc::{ArcBindGroup, ArcBindGroupLayout, ArcBuffer, ArcTexture, ArcTextureView},
-    bind_group::BindGroupBuilder,
-    growing::GrowingBufferArena,
-};
+use super::{bind_group::BindGroupBuilder, growing::GrowingBufferArena};
 use crate::graphics::{context::FrameArenas, LinearColor};
 use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
 use ordered_float::OrderedFloat;
@@ -11,10 +7,10 @@ use std::cell::RefCell;
 pub(crate) struct TextRenderer {
     // RefCell to make various getter not take &mut.
     pub glyph_brush: RefCell<GlyphBrush<TextVertex, Extra>>,
-    pub cache: ArcTexture,
-    pub cache_view: ArcTextureView,
-    pub cache_bind: ArcBindGroup,
-    pub cache_bind_layout: ArcBindGroupLayout,
+    pub cache: wgpu::Texture,
+    pub cache_view: wgpu::TextureView,
+    pub cache_bind: wgpu::BindGroup,
+    pub cache_bind_layout: wgpu::BindGroupLayout,
     pub cache_size: (u32, u32),
 
     pub verts: GrowingBufferArena,
@@ -24,7 +20,7 @@ impl TextRenderer {
     // if the number of chars goes over this, a dedicated buffer is allocated for the text
     const MAX_TEXT_VERTEX_ARENA: u64 = 2048;
 
-    pub fn new(device: &wgpu::Device, cache_bind_layout: ArcBindGroupLayout) -> Self {
+    pub fn new(device: &wgpu::Device, cache_bind_layout: wgpu::BindGroupLayout) -> Self {
         let cache_size = (1024, 1024);
 
         let glyph_brush = GlyphBrushBuilder::using_fonts(vec![])
@@ -79,7 +75,7 @@ impl TextRenderer {
         }
     }
 
-    fn create_verts_buffer(device: &wgpu::Device, num_verts: usize) -> ArcBuffer {
+    fn create_verts_buffer(device: &wgpu::Device, num_verts: usize) -> wgpu::Buffer {
         device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: (num_verts * std::mem::size_of::<TextVertex>()) as u64,

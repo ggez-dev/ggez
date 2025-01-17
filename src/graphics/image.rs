@@ -1,10 +1,6 @@
 use super::{
-    context::GraphicsContext,
-    gpu::{
-        arc::{ArcBindGroup, ArcSampler, ArcTexture, ArcTextureView},
-        bind_group::BindGroupBuilder,
-    },
-    Canvas, Color, Draw, DrawParam, Drawable, Rect, WgpuContext,
+    context::GraphicsContext, gpu::bind_group::BindGroupBuilder, Canvas, Color, Draw, DrawParam,
+    Drawable, Rect, WgpuContext,
 };
 use crate::{context::Has, Context, GameError, GameResult};
 use image::ImageEncoder;
@@ -26,13 +22,13 @@ pub type ImageEncodingFormat = ::image::ImageFormat;
 /// Handle to an image stored in GPU memory.
 #[derive(Debug, Clone)]
 pub struct Image {
-    pub(crate) texture: ArcTexture,
-    pub(crate) view: ArcTextureView,
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) view: wgpu::TextureView,
     pub(crate) format: ImageFormat,
     pub(crate) width: u32,
     pub(crate) height: u32,
     pub(crate) samples: u32,
-    pub(crate) cache: Arc<RwLock<BTreeMap<wgpu::Sampler, ArcBindGroup>>>,
+    pub(crate) cache: Arc<RwLock<BTreeMap<wgpu::Sampler, wgpu::BindGroup>>>,
 }
 
 impl Image {
@@ -385,7 +381,11 @@ impl Image {
         }
     }
 
-    pub(crate) fn fetch_buffer(&self, sampler: ArcSampler, device: &wgpu::Device) -> ArcBindGroup {
+    pub(crate) fn fetch_buffer(
+        &self,
+        sampler: wgpu::Sampler,
+        device: &wgpu::Device,
+    ) -> wgpu::BindGroup {
         // Fast path: already in cache
         if let Some(buffer) = self.cache.read().unwrap().get(&sampler) {
             return buffer.clone();

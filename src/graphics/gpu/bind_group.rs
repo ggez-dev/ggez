@@ -1,4 +1,3 @@
-use super::arc::{ArcBindGroup, ArcBindGroupLayout, ArcBuffer, ArcSampler, ArcTextureView};
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     hash::{Hash, Hasher},
@@ -69,7 +68,11 @@ impl BindGroupLayoutBuilder {
         self
     }
 
-    pub fn create(self, device: &wgpu::Device, cache: &mut BindGroupCache) -> ArcBindGroupLayout {
+    pub fn create(
+        self,
+        device: &wgpu::Device,
+        cache: &mut BindGroupCache,
+    ) -> wgpu::BindGroupLayout {
         cache
             .layouts
             .entry((self.entries.clone(), self.seed))
@@ -77,7 +80,7 @@ impl BindGroupLayoutBuilder {
             .clone()
     }
 
-    pub fn create_uncached(self, device: &wgpu::Device) -> ArcBindGroupLayout {
+    pub fn create_uncached(self, device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &self.entries,
@@ -94,7 +97,7 @@ pub(crate) enum BindGroupEntryKey {
         size: Option<u64>,
     },
     Image(wgpu::TextureView),
-    Sampler(ArcSampler),
+    Sampler(wgpu::Sampler),
 }
 
 pub struct BindGroupBuilder<'a> {
@@ -114,7 +117,7 @@ impl<'a> BindGroupBuilder<'a> {
 
     pub fn buffer(
         mut self,
-        buffer: &'a ArcBuffer,
+        buffer: &'a wgpu::Buffer,
         offset: u64,
         visibility: wgpu::ShaderStages,
         ty: wgpu::BufferBindingType,
@@ -143,7 +146,7 @@ impl<'a> BindGroupBuilder<'a> {
         }
     }
 
-    pub fn image(mut self, view: &'a ArcTextureView, visibility: wgpu::ShaderStages) -> Self {
+    pub fn image(mut self, view: &'a wgpu::TextureView, visibility: wgpu::ShaderStages) -> Self {
         self.entries.push(wgpu::BindGroupEntry {
             binding: self.entries.len() as _,
             resource: wgpu::BindingResource::TextureView(view),
@@ -158,7 +161,7 @@ impl<'a> BindGroupBuilder<'a> {
         }
     }
 
-    pub fn sampler(mut self, sampler: &'a ArcSampler, visibility: wgpu::ShaderStages) -> Self {
+    pub fn sampler(mut self, sampler: &'a wgpu::Sampler, visibility: wgpu::ShaderStages) -> Self {
         self.entries.push(wgpu::BindGroupEntry {
             binding: self.entries.len() as _,
             resource: wgpu::BindingResource::Sampler(sampler),
@@ -177,7 +180,7 @@ impl<'a> BindGroupBuilder<'a> {
         self,
         device: &wgpu::Device,
         cache: &mut BindGroupCache,
-    ) -> (ArcBindGroup, ArcBindGroupLayout) {
+    ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
         let layout = self.layout.create(device, cache);
 
         let group = cache
@@ -196,7 +199,10 @@ impl<'a> BindGroupBuilder<'a> {
     }
 
     #[allow(unused)]
-    pub fn create_uncached(self, device: &wgpu::Device) -> (ArcBindGroup, ArcBindGroupLayout) {
+    pub fn create_uncached(
+        self,
+        device: &wgpu::Device,
+    ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
         let layout = self.layout.create_uncached(device);
         let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
@@ -214,8 +220,8 @@ impl<'a> BindGroupBuilder<'a> {
 
 #[derive(Debug)]
 pub struct BindGroupCache {
-    layouts: HashMap<(Vec<wgpu::BindGroupLayoutEntry>, u64), ArcBindGroupLayout>,
-    groups: HashMap<Vec<BindGroupEntryKey>, ArcBindGroup>,
+    layouts: HashMap<(Vec<wgpu::BindGroupLayoutEntry>, u64), wgpu::BindGroupLayout>,
+    groups: HashMap<Vec<BindGroupEntryKey>, wgpu::BindGroup>,
 }
 
 impl BindGroupCache {

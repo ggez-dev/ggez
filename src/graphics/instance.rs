@@ -3,7 +3,6 @@ use crate::{context::Has, graphics::gpu::bind_group::BindGroupBuilder, GameError
 use super::{
     context::GraphicsContext,
     draw::{DrawParam, DrawUniforms, Std140DrawUniforms},
-    gpu::arc::{ArcBindGroup, ArcBindGroupLayout, ArcBuffer},
     internal_canvas::InstanceArrayView,
     transform_rect, Canvas, Draw, Drawable, Image, Mesh, Rect, WgpuContext,
 };
@@ -23,10 +22,10 @@ const DEFAULT_CAPACITY: usize = 16;
 /// Traditionally known as a "batch".
 #[derive(Debug)]
 pub struct InstanceArray {
-    pub(crate) buffer: Mutex<ArcBuffer>,
-    pub(crate) indices: Mutex<ArcBuffer>,
-    pub(crate) bind_group: Mutex<ArcBindGroup>,
-    pub(crate) bind_layout: ArcBindGroupLayout,
+    pub(crate) buffer: Mutex<wgpu::Buffer>,
+    pub(crate) indices: Mutex<wgpu::Buffer>,
+    pub(crate) bind_group: Mutex<wgpu::BindGroup>,
+    pub(crate) bind_layout: wgpu::BindGroupLayout,
     pub(crate) image: Image,
     pub(crate) ordered: bool,
     dirty: AtomicBool,
@@ -70,7 +69,7 @@ impl InstanceArray {
 
     fn new_wgpu(
         wgpu: &WgpuContext,
-        bind_layout: ArcBindGroupLayout,
+        bind_layout: wgpu::BindGroupLayout,
         image: Image,
         capacity: usize,
         ordered: bool,

@@ -1,7 +1,6 @@
 use super::{
     context::{FrameArenas, GraphicsContext},
     gpu::{
-        arc::{ArcBindGroup, ArcBindGroupLayout, ArcShaderModule, ArcTextureView},
         bind_group::{BindGroupBuilder, BindGroupCache, BindGroupLayoutBuilder},
         growing::{ArenaAllocation, GrowingBufferArena},
         pipeline::{PipelineCache, RenderPipelineInfo},
@@ -16,7 +15,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec4};
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 /// A canvas represents a render pass and is how you render meshes .
 #[allow(missing_debug_implementations)]
@@ -29,7 +28,7 @@ pub struct InternalCanvas3d<'a> {
     uniform_arena: &'a mut GrowingBufferArena,
 
     shader: Shader,
-    shader_bind_group: Option<(&'a wgpu::BindGroup, ArcBindGroupLayout, u32)>,
+    shader_bind_group: Option<(&'a wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
 
     shader_ty: Option<ShaderType3d>,
     dirty_pipeline: bool,
@@ -39,12 +38,12 @@ pub struct InternalCanvas3d<'a> {
     samples: u32,
     format: wgpu::TextureFormat,
 
-    draw_sm: ArcShaderModule,
-    instance_sm: ArcShaderModule,
-    instance_unordered_sm: ArcShaderModule,
+    draw_sm: Arc<wgpu::ShaderModule>,
+    instance_sm: Arc<wgpu::ShaderModule>,
+    instance_unordered_sm: Arc<wgpu::ShaderModule>,
 
     transform: glam::Mat4,
-    curr_image: Option<ArcTextureView>,
+    curr_image: Option<wgpu::TextureView>,
     curr_sampler: Sampler,
     next_sampler: Sampler,
 
@@ -221,8 +220,8 @@ impl<'a> InternalCanvas3d<'a> {
 
     pub fn set_shader_params(
         &mut self,
-        bind_group: ArcBindGroup,
-        layout: ArcBindGroupLayout,
+        bind_group: wgpu::BindGroup,
+        layout: wgpu::BindGroupLayout,
         offset: u32,
     ) {
         self.dirty_pipeline = true;
@@ -532,7 +531,7 @@ impl Drop for InternalCanvas3d<'_> {
 
 #[derive(Debug)]
 pub struct InstanceArrayView3d {
-    pub bind_group: ArcBindGroup,
+    pub bind_group: wgpu::BindGroup,
     pub image: Image,
     pub len: u32,
     pub ordered: bool,

@@ -2,7 +2,6 @@ use super::{
     context::{FrameArenas, GraphicsContext},
     draw::{DrawParam, DrawUniforms},
     gpu::{
-        arc::{ArcBindGroup, ArcBindGroupLayout, ArcShaderModule, ArcTextureView},
         bind_group::{BindGroupBuilder, BindGroupCache, BindGroupLayoutBuilder},
         growing::{ArenaAllocation, GrowingBufferArena},
         pipeline::{PipelineCache, RenderPipelineInfo},
@@ -17,7 +16,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec2, Vec4};
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, sync::Arc};
 
 /// A canvas represents a render pass and is how you render primitives such as meshes and text onto images.
 #[allow(missing_debug_implementations)]
@@ -32,9 +31,9 @@ pub struct InternalCanvas<'a> {
     uniform_arena: &'a mut GrowingBufferArena,
 
     shader: Shader,
-    shader_bind_group: Option<(&'a wgpu::BindGroup, ArcBindGroupLayout, u32)>,
+    shader_bind_group: Option<(&'a wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
     text_shader: Shader,
-    text_shader_bind_group: Option<(&'a wgpu::BindGroup, ArcBindGroupLayout, u32)>,
+    text_shader_bind_group: Option<(&'a wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
 
     shader_ty: Option<ShaderType>,
     dirty_pipeline: bool,
@@ -45,13 +44,13 @@ pub struct InternalCanvas<'a> {
     format: wgpu::TextureFormat,
     text_uniforms: ArenaAllocation,
 
-    draw_sm: ArcShaderModule,
-    instance_sm: ArcShaderModule,
-    instance_unordered_sm: ArcShaderModule,
-    text_sm: ArcShaderModule,
+    draw_sm: Arc<wgpu::ShaderModule>,
+    instance_sm: Arc<wgpu::ShaderModule>,
+    instance_unordered_sm: Arc<wgpu::ShaderModule>,
+    text_sm: Arc<wgpu::ShaderModule>,
 
     transform: glam::Mat4,
-    curr_image: Option<ArcTextureView>,
+    curr_image: Option<wgpu::TextureView>,
     curr_sampler: Sampler,
     next_sampler: Sampler,
     premul_text: bool,
@@ -232,8 +231,8 @@ impl<'a> InternalCanvas<'a> {
 
     pub fn set_shader_params(
         &mut self,
-        bind_group: ArcBindGroup,
-        layout: ArcBindGroupLayout,
+        bind_group: wgpu::BindGroup,
+        layout: wgpu::BindGroupLayout,
         offset: u32,
     ) {
         self.flush_text();
@@ -255,8 +254,8 @@ impl<'a> InternalCanvas<'a> {
 
     pub fn set_text_shader_params(
         &mut self,
-        bind_group: ArcBindGroup,
-        layout: ArcBindGroupLayout,
+        bind_group: wgpu::BindGroup,
+        layout: wgpu::BindGroupLayout,
         offset: u32,
     ) {
         self.flush_text();
@@ -664,7 +663,7 @@ impl<'a> InternalCanvas<'a> {
         }
     }
 
-    fn set_text_image(&mut self, view: ArcTextureView) {
+    fn set_text_image(&mut self, view: wgpu::TextureView) {
         if self.curr_sampler != self.next_sampler
             || self.curr_image.as_ref().map_or(true, |curr| *curr != view)
         {
@@ -694,7 +693,7 @@ impl Drop for InternalCanvas<'_> {
 
 #[derive(Debug)]
 pub struct InstanceArrayView {
-    pub bind_group: ArcBindGroup,
+    pub bind_group: wgpu::BindGroup,
     pub image: Image,
     pub len: u32,
     pub ordered: bool,
