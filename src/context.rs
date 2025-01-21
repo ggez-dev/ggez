@@ -15,20 +15,6 @@ use crate::graphics::GraphicsContext;
 use crate::input;
 use crate::timer;
 
-#[cfg(feature = "gamepad")]
-use crate::input::gamepad::GamepadContext;
-
-#[cfg(not(feature = "gamepad"))]
-/// Dummy gamepad context
-#[derive(Debug)]
-pub struct GamepadContext;
-
-#[cfg(not(feature = "gamepad"))]
-impl GamepadContext {
-    fn new() -> GameResult<Self> {
-        Ok(Self)
-    }
-}
 /// A `Context` is an object that holds on to global resources.
 /// It basically tracks hardware state such as the screen, audio
 /// system, timers, and so on.  Generally this type can **not**
@@ -64,7 +50,7 @@ pub struct Context {
     /// Mouse input context.
     pub mouse: input::mouse::MouseContext,
     /// Gamepad input context.
-    pub gamepad: GamepadContext,
+    pub gamepad: input::gamepad::GamepadContext,
     /// Fields used by all contexts
     pub fields: ContextFields,
 }
@@ -205,9 +191,9 @@ impl HasMut<input::mouse::MouseContext> for Context {
     }
 }
 
-impl HasMut<GamepadContext> for Context {
+impl HasMut<input::gamepad::GamepadContext> for Context {
     #[inline]
-    fn retrieve_mut(&mut self) -> &mut GamepadContext {
+    fn retrieve_mut(&mut self) -> &mut input::gamepad::GamepadContext {
         &mut self.gamepad
     }
 }
@@ -241,7 +227,7 @@ impl Context {
             audio: audio_context,
             keyboard: input::keyboard::KeyboardContext::new(),
             mouse: input::mouse::MouseContext::new(),
-            gamepad: GamepadContext::new()?,
+            gamepad: input::gamepad::GamepadContext::new()?,
             fields: ContextFields {
                 conf,
                 continuing: true,
@@ -414,7 +400,7 @@ impl ContextBuilder {
             + HasMut<timer::TimeContext>
             + HasMut<input::keyboard::KeyboardContext>
             + HasMut<input::mouse::MouseContext>
-            + HasMut<GamepadContext>,
+            + HasMut<input::gamepad::GamepadContext>,
     {
         let fs = Filesystem::new(
             self.game_id.as_ref(),

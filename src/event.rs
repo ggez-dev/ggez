@@ -18,15 +18,13 @@ use winit::{
 };
 
 use crate::graphics::GraphicsContext;
-use crate::input::{self, keyboard::KeyInput};
+use crate::input::{self, gamepad::GamepadContext, keyboard::KeyInput};
 use crate::{
     context::{ContextFields, HasMut},
     GameResult,
 };
 use crate::{Context, GameError};
 
-#[cfg(feature = "gamepad")]
-use crate::input::gamepad::GamepadContext;
 #[cfg(feature = "gamepad")]
 pub use crate::input::gamepad::GamepadId;
 #[cfg(feature = "gamepad")]
@@ -494,7 +492,7 @@ where
                     // Handle gamepad events if necessary.
                     #[cfg(feature = "gamepad")]
                     while let Some(gilrs::Event { id, event, .. }) =
-                        HasMut::<input::gamepad::GamepadContext>::retrieve_mut(ctx).next_event()
+                        HasMut::<GamepadContext>::retrieve_mut(ctx).next_event()
                     {
                         match event {
                             gilrs::EventType::ButtonPressed(button, _) => {
