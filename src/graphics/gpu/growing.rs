@@ -1,5 +1,3 @@
-use super::arc::ArcBuffer;
-
 /// Simple buffer sub-allocation helper.
 ///
 /// In short, the allocator is:
@@ -8,7 +6,7 @@ use super::arc::ArcBuffer;
 /// - aligned: This is particularly important for uniform buffers as GPUs have a restriction on min alignment for dynamic offsets into UBOs
 #[derive(Debug)]
 pub struct GrowingBufferArena {
-    buffers: Vec<(ArcBuffer, u64)>,
+    buffers: Vec<(wgpu::Buffer, u64)>,
     alignment: u64,
     desc: wgpu::BufferDescriptor<'static>,
 }
@@ -20,7 +18,7 @@ impl GrowingBufferArena {
         desc: wgpu::BufferDescriptor<'static>,
     ) -> Self {
         GrowingBufferArena {
-            buffers: vec![(ArcBuffer::new(device.create_buffer(&desc)), 0)],
+            buffers: vec![(device.create_buffer(&desc), 0)],
             alignment,
             desc,
         }
@@ -53,14 +51,13 @@ impl GrowingBufferArena {
     }
 
     fn grow(&mut self, device: &wgpu::Device) {
-        self.buffers
-            .push((ArcBuffer::new(device.create_buffer(&self.desc)), 0));
+        self.buffers.push((device.create_buffer(&self.desc), 0));
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct ArenaAllocation {
-    pub buffer: ArcBuffer,
+    pub buffer: wgpu::Buffer,
     pub offset: u64,
 }
 

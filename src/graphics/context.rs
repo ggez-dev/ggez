@@ -1,9 +1,5 @@
 use super::{
     gpu::{
-        arc::{
-            ArcBindGroup, ArcBindGroupLayout, ArcBuffer, ArcRenderPipeline, ArcSampler,
-            ArcShaderModule, ArcTextureView,
-        },
         bind_group::{BindGroupCache, BindGroupEntryKey},
         growing::GrowingBufferArena,
         pipeline::PipelineCache,
@@ -39,9 +35,9 @@ pub(crate) struct FrameContext {
 
 #[derive(Default)]
 pub(crate) struct FrameArenas {
-    pub buffers: TypedArena<ArcBuffer>,
-    pub render_pipelines: TypedArena<ArcRenderPipeline>,
-    pub bind_groups: TypedArena<ArcBindGroup>,
+    pub buffers: TypedArena<wgpu::Buffer>,
+    pub render_pipelines: TypedArena<wgpu::RenderPipeline>,
+    pub bind_groups: TypedArena<wgpu::BindGroup>,
 }
 
 /// WGPU graphics context objects.
@@ -78,26 +74,26 @@ pub struct GraphicsContext {
     pub(crate) staging_belt: wgpu::util::StagingBelt,
     pub(crate) uniform_arena: GrowingBufferArena,
 
-    pub(crate) draw_shader: ArcShaderModule,
+    pub(crate) draw_shader: Arc<wgpu::ShaderModule>,
 
     #[cfg(feature = "3d")]
-    pub(crate) draw_shader_3d: ArcShaderModule,
+    pub(crate) draw_shader_3d: Arc<wgpu::ShaderModule>,
     #[cfg(feature = "3d")]
-    pub(crate) instance_shader_3d: ArcShaderModule,
+    pub(crate) instance_shader_3d: Arc<wgpu::ShaderModule>,
     #[cfg(feature = "3d")]
-    pub(crate) instance_unordered_shader_3d: ArcShaderModule,
+    pub(crate) instance_unordered_shader_3d: Arc<wgpu::ShaderModule>,
 
-    pub(crate) instance_shader: ArcShaderModule,
-    pub(crate) instance_unordered_shader: ArcShaderModule,
-    pub(crate) text_shader: ArcShaderModule,
-    pub(crate) copy_shader: ArcShaderModule,
+    pub(crate) instance_shader: Arc<wgpu::ShaderModule>,
+    pub(crate) instance_unordered_shader: Arc<wgpu::ShaderModule>,
+    pub(crate) text_shader: Arc<wgpu::ShaderModule>,
+    pub(crate) copy_shader: Arc<wgpu::ShaderModule>,
     pub(crate) rect_mesh: Mesh,
     pub(crate) white_image: Image,
-    pub(crate) instance_bind_layout: ArcBindGroupLayout,
+    pub(crate) instance_bind_layout: wgpu::BindGroupLayout,
 
     pub(crate) fs: Filesystem,
 
-    bind_group: Option<([BindGroupEntryKey; 2], ArcBindGroup)>,
+    bind_group: Option<([BindGroupEntryKey; 2], wgpu::BindGroup)>,
 }
 
 impl GraphicsContext {
@@ -110,7 +106,7 @@ impl GraphicsContext {
         filesystem: &Filesystem,
     ) -> GameResult<Self> {
         let new_instance = |backends| {
-            wgpu::Instance::new(wgpu::InstanceDescriptor {
+            wgpu::Instance::new(&wgpu::InstanceDescriptor {
                 backends,
                 ..Default::default()
             })
@@ -160,12 +156,12 @@ impl GraphicsContext {
 
     fn bind_group(
         &mut self,
-        view: ArcTextureView,
-        sampler: ArcSampler,
-    ) -> (ArcBindGroup, ArcBindGroupLayout) {
+        view: wgpu::TextureView,
+        sampler: wgpu::Sampler,
+    ) -> (wgpu::BindGroup, wgpu::BindGroupLayout) {
         let key = [
-            BindGroupEntryKey::Image { id: view.id() },
-            BindGroupEntryKey::Sampler { id: sampler.id() },
+            BindGroupEntryKey::Image(view.clone()),
+            BindGroupEntryKey::Sampler(sampler.clone()),
         ];
         let layout = BindGroupLayoutBuilder::new()
             .image(wgpu::ShaderStages::FRAGMENT)
@@ -175,22 +171,23 @@ impl GraphicsContext {
         let bind_group = match &self.bind_group {
             Some((old_key, bind_group)) if old_key == &key => bind_group.clone(),
             _ => {
-                let bind_group = ArcBindGroup::new(self.wgpu.device.create_bind_group(
-                    &wgpu::BindGroupDescriptor {
+                let bind_group = self
+                    .wgpu
+                    .device
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
                         label: None,
-                        layout: layout.as_ref(),
+                        layout: &layout,
                         entries: &[
                             wgpu::BindGroupEntry {
                                 binding: 0,
-                                resource: wgpu::BindingResource::TextureView(view.as_ref()),
+                                resource: wgpu::BindingResource::TextureView(&view),
                             },
                             wgpu::BindGroupEntry {
                                 binding: 1,
-                                resource: wgpu::BindingResource::Sampler(sampler.as_ref()),
+                                resource: wgpu::BindingResource::Sampler(&sampler),
                             },
                         ],
-                    },
-                ));
+                    });
                 self.bind_group = Some((key, bind_group.clone()));
                 bind_group
             }
@@ -332,7 +329,7 @@ impl GraphicsContext {
             },
         );
 
-        let draw_shader = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let draw_shader = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/draw.wgsl").into()),
@@ -340,7 +337,7 @@ impl GraphicsContext {
         ));
 
         #[cfg(feature = "3d")]
-        let draw_shader_3d = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let draw_shader_3d = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/draw3d.wgsl").into()),
@@ -348,7 +345,7 @@ impl GraphicsContext {
         ));
 
         #[cfg(feature = "3d")]
-        let instance_shader_3d = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let instance_shader_3d = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/instance3d.wgsl").into()),
@@ -356,7 +353,7 @@ impl GraphicsContext {
         ));
 
         #[cfg(feature = "3d")]
-        let instance_unordered_shader_3d = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let instance_unordered_shader_3d = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(
@@ -365,14 +362,14 @@ impl GraphicsContext {
             },
         ));
 
-        let instance_shader = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let instance_shader = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/instance.wgsl").into()),
             },
         ));
 
-        let instance_unordered_shader = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let instance_unordered_shader = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(
@@ -381,14 +378,14 @@ impl GraphicsContext {
             },
         ));
 
-        let text_shader = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let text_shader = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/text.wgsl").into()),
             },
         ));
 
-        let copy_shader = ArcShaderModule::new(wgpu.device.create_shader_module(
+        let copy_shader = Arc::new(wgpu.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/copy.wgsl").into()),
@@ -727,9 +724,8 @@ impl GraphicsContext {
             let layout = self.pipeline_cache.layout(&self.wgpu.device, &[layout]);
             let copy = self.pipeline_cache.render_pipeline(
                 &self.wgpu.device,
-                &layout,
                 RenderPipelineInfo {
-                    layout_id: layout.id(),
+                    layout,
                     vs: self.copy_shader.clone(),
                     fs: self.copy_shader.clone(),
                     vs_entry: "vs_main".into(),
@@ -749,7 +745,7 @@ impl GraphicsContext {
             let bind = fcx.arenas.bind_groups.alloc(bind);
 
             present_pass.set_pipeline(copy);
-            present_pass.set_bind_group(0, &**bind, &[]);
+            present_pass.set_bind_group(0, &*bind, &[]);
             present_pass.draw(0..3, 0..1);
 
             std::mem::drop(present_pass);

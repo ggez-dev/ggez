@@ -3,7 +3,6 @@ use crate::{context::Has, graphics::gpu::bind_group::BindGroupBuilder, GameError
 use super::{
     context::GraphicsContext,
     draw::{DrawParam, DrawUniforms, Std140DrawUniforms},
-    gpu::arc::{ArcBindGroup, ArcBindGroupLayout, ArcBuffer},
     internal_canvas::InstanceArrayView,
     transform_rect, Canvas, Draw, Drawable, Image, Mesh, Rect, WgpuContext,
 };
@@ -23,10 +22,10 @@ const DEFAULT_CAPACITY: usize = 16;
 /// Traditionally known as a "batch".
 #[derive(Debug)]
 pub struct InstanceArray {
-    pub(crate) buffer: Mutex<ArcBuffer>,
-    pub(crate) indices: Mutex<ArcBuffer>,
-    pub(crate) bind_group: Mutex<ArcBindGroup>,
-    pub(crate) bind_layout: ArcBindGroupLayout,
+    pub(crate) buffer: Mutex<wgpu::Buffer>,
+    pub(crate) indices: Mutex<wgpu::Buffer>,
+    pub(crate) bind_group: Mutex<wgpu::BindGroup>,
+    pub(crate) bind_layout: wgpu::BindGroupLayout,
     pub(crate) image: Image,
     pub(crate) ordered: bool,
     dirty: AtomicBool,
@@ -70,23 +69,23 @@ impl InstanceArray {
 
     fn new_wgpu(
         wgpu: &WgpuContext,
-        bind_layout: ArcBindGroupLayout,
+        bind_layout: wgpu::BindGroupLayout,
         image: Image,
         capacity: usize,
         ordered: bool,
     ) -> Self {
         assert!(capacity > 0);
 
-        let buffer = ArcBuffer::new(wgpu.device.create_buffer(&wgpu::BufferDescriptor {
+        let buffer = wgpu.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: DrawUniforms::std140_size_static() as u64 * capacity as u64,
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_DST
                 | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
-        }));
+        });
 
-        let indices = ArcBuffer::new(wgpu.device.create_buffer(&wgpu::BufferDescriptor {
+        let indices = wgpu.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: if ordered {
                 std::mem::size_of::<u32>() as u64 * capacity as u64
@@ -97,7 +96,7 @@ impl InstanceArray {
                 | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
-        }));
+        });
 
         let bind_group = BindGroupBuilder::new()
             .buffer(
@@ -116,12 +115,11 @@ impl InstanceArray {
                 false,
                 None,
             );
-        let bind_group =
-            ArcBindGroup::new(wgpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &bind_layout,
-                entries: bind_group.entries(),
-            }));
+        let bind_group = wgpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &bind_layout,
+            entries: bind_group.entries(),
+        });
 
         let uniforms = Vec::with_capacity(capacity);
         let params = Vec::with_capacity(capacity);

@@ -1,7 +1,6 @@
 use super::{
     context::{FrameArenas, GraphicsContext},
     gpu::{
-        arc::{ArcBindGroup, ArcBindGroupLayout, ArcShaderModule, ArcTextureView},
         bind_group::{BindGroupBuilder, BindGroupCache, BindGroupLayoutBuilder},
         growing::{ArenaAllocation, GrowingBufferArena},
         pipeline::{PipelineCache, RenderPipelineInfo},
@@ -16,7 +15,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec4};
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 /// A canvas represents a render pass and is how you render meshes .
 #[allow(missing_debug_implementations)]
@@ -29,7 +28,7 @@ pub struct InternalCanvas3d<'a> {
     uniform_arena: &'a mut GrowingBufferArena,
 
     shader: Shader,
-    shader_bind_group: Option<(&'a wgpu::BindGroup, ArcBindGroupLayout, u32)>,
+    shader_bind_group: Option<(&'a wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
 
     shader_ty: Option<ShaderType3d>,
     dirty_pipeline: bool,
@@ -39,12 +38,12 @@ pub struct InternalCanvas3d<'a> {
     samples: u32,
     format: wgpu::TextureFormat,
 
-    draw_sm: ArcShaderModule,
-    instance_sm: ArcShaderModule,
-    instance_unordered_sm: ArcShaderModule,
+    draw_sm: Arc<wgpu::ShaderModule>,
+    instance_sm: Arc<wgpu::ShaderModule>,
+    instance_unordered_sm: Arc<wgpu::ShaderModule>,
 
     transform: glam::Mat4,
-    curr_image: Option<ArcTextureView>,
+    curr_image: Option<wgpu::TextureView>,
     curr_sampler: Sampler,
     next_sampler: Sampler,
 
@@ -66,7 +65,7 @@ impl<'a> InternalCanvas3d<'a> {
             cmd.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: image.view.as_ref(),
+                    view: &image.view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: match clear.into() {
@@ -119,8 +118,8 @@ impl<'a> InternalCanvas3d<'a> {
             cmd.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: msaa_image.view.as_ref(),
-                    resolve_target: Some(resolve_image.view.as_ref()),
+                    view: &msaa_image.view,
+                    resolve_target: Some(&resolve_image.view),
                     ops: wgpu::Operations {
                         load: match clear.into() {
                             None => wgpu::LoadOp::Load,
@@ -221,8 +220,8 @@ impl<'a> InternalCanvas3d<'a> {
 
     pub fn set_shader_params(
         &mut self,
-        bind_group: ArcBindGroup,
-        layout: ArcBindGroupLayout,
+        bind_group: wgpu::BindGroup,
+        layout: wgpu::BindGroupLayout,
         offset: u32,
     ) {
         self.dirty_pipeline = true;
@@ -314,7 +313,7 @@ impl<'a> InternalCanvas3d<'a> {
 
         self.pass.set_bind_group(
             0,
-            &**self.arenas.bind_groups.alloc(uniform_bind_group),
+            &*self.arenas.bind_groups.alloc(uniform_bind_group),
             &[offset as u32], // <- the dynamic offset
         );
 
@@ -374,10 +373,10 @@ impl<'a> InternalCanvas3d<'a> {
 
         self.pass.set_bind_group(
             0,
-            &**self.arenas.bind_groups.alloc(uniform_bind_group),
+            &*self.arenas.bind_groups.alloc(uniform_bind_group),
             &[uniform_alloc.offset as u32],
         );
-        self.pass.set_bind_group(2, &*instances.bind_group, &[]);
+        self.pass.set_bind_group(2, &instances.bind_group, &[]);
 
         self.pass.set_vertex_buffer(0, mesh.vert_buffer.slice(..)); // These buffers should always exist if I recall correctly
         self.pass
@@ -438,7 +437,7 @@ impl<'a> InternalCanvas3d<'a> {
                 // the dummy group ensures the user's bind group is at index 3
                 groups.push(dummy_layout);
                 self.pass
-                    .set_bind_group(2, &**self.arenas.bind_groups.alloc(dummy_group), &[]);
+                    .set_bind_group(2, &*self.arenas.bind_groups.alloc(dummy_group), &[]);
             }
 
             let shader = match ty {
@@ -460,9 +459,8 @@ impl<'a> InternalCanvas3d<'a> {
                 .render_pipelines
                 .alloc(self.pipeline_cache.render_pipeline(
                     &self.wgpu.device,
-                    layout.as_ref(),
                     RenderPipelineInfo {
-                        layout_id: layout.id(),
+                        layout,
                         vs: if let Some(vs_module) = &shader.vs_module {
                             vs_module.clone()
                         } else {
@@ -511,16 +509,16 @@ impl<'a> InternalCanvas3d<'a> {
             || self
                 .curr_image
                 .as_ref()
-                .map_or(true, |curr| curr.id() != image.view.id())
+                .map_or(true, |curr| *curr != image.view)
         {
             self.curr_sampler = self.next_sampler;
             let sample = self.sampler_cache.get(&self.wgpu.device, self.curr_sampler);
-            let image_bind = image.fetch_buffer(sample.id(), sample, &self.wgpu.device);
+            let image_bind = image.fetch_buffer(sample, &self.wgpu.device);
 
             self.curr_image = Some(image.view);
 
             self.pass
-                .set_bind_group(1, &**self.arenas.bind_groups.alloc(image_bind), &[]);
+                .set_bind_group(1, &*self.arenas.bind_groups.alloc(image_bind), &[]);
         }
     }
 }
@@ -533,7 +531,7 @@ impl Drop for InternalCanvas3d<'_> {
 
 #[derive(Debug)]
 pub struct InstanceArrayView3d {
-    pub bind_group: ArcBindGroup,
+    pub bind_group: wgpu::BindGroup,
     pub image: Image,
     pub len: u32,
     pub ordered: bool,

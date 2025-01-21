@@ -1,8 +1,4 @@
-use super::{
-    arc::{ArcBindGroup, ArcBindGroupLayout, ArcBuffer, ArcTexture, ArcTextureView},
-    bind_group::BindGroupBuilder,
-    growing::GrowingBufferArena,
-};
+use super::{bind_group::BindGroupBuilder, growing::GrowingBufferArena};
 use crate::graphics::{context::FrameArenas, LinearColor};
 use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
 use ordered_float::OrderedFloat;
@@ -11,10 +7,10 @@ use std::cell::RefCell;
 pub(crate) struct TextRenderer {
     // RefCell to make various getter not take &mut.
     pub glyph_brush: RefCell<GlyphBrush<TextVertex, Extra>>,
-    pub cache: ArcTexture,
-    pub cache_view: ArcTextureView,
-    pub cache_bind: ArcBindGroup,
-    pub cache_bind_layout: ArcBindGroupLayout,
+    pub cache: wgpu::Texture,
+    pub cache_view: wgpu::TextureView,
+    pub cache_bind: wgpu::BindGroup,
+    pub cache_bind_layout: wgpu::BindGroupLayout,
     pub cache_size: (u32, u32),
 
     pub verts: GrowingBufferArena,
@@ -24,7 +20,7 @@ impl TextRenderer {
     // if the number of chars goes over this, a dedicated buffer is allocated for the text
     const MAX_TEXT_VERTEX_ARENA: u64 = 2048;
 
-    pub fn new(device: &wgpu::Device, cache_bind_layout: ArcBindGroupLayout) -> Self {
+    pub fn new(device: &wgpu::Device, cache_bind_layout: wgpu::BindGroupLayout) -> Self {
         let cache_size = (1024, 1024);
 
         let glyph_brush = GlyphBrushBuilder::using_fonts(vec![])
@@ -32,7 +28,7 @@ impl TextRenderer {
             .initial_cache_size(cache_size)
             .build();
 
-        let cache = ArcTexture::new(device.create_texture(&wgpu::TextureDescriptor {
+        let cache = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
                 width: cache_size.0,
@@ -45,17 +41,16 @@ impl TextRenderer {
             format: wgpu::TextureFormat::R8Unorm,
             usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
-        }));
+        });
 
-        let cache_view =
-            ArcTextureView::new(cache.create_view(&wgpu::TextureViewDescriptor::default()));
+        let cache_view = cache.create_view(&wgpu::TextureViewDescriptor::default());
 
         let cache_bind = BindGroupBuilder::new().image(&cache_view, wgpu::ShaderStages::FRAGMENT);
-        let cache_bind = ArcBindGroup::new(device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let cache_bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &cache_bind_layout,
             entries: cache_bind.entries(),
-        }));
+        });
 
         let verts = GrowingBufferArena::new(
             device,
@@ -80,13 +75,13 @@ impl TextRenderer {
         }
     }
 
-    fn create_verts_buffer(device: &wgpu::Device, num_verts: usize) -> ArcBuffer {
-        ArcBuffer::new(device.create_buffer(&wgpu::BufferDescriptor {
+    fn create_verts_buffer(device: &wgpu::Device, num_verts: usize) -> wgpu::Buffer {
+        device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: (num_verts * std::mem::size_of::<TextVertex>()) as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
             mapped_at_creation: false,
-        }))
+        })
     }
 
     pub fn queue(&self, section: glyph_brush::Section<'_, Extra>) {
@@ -104,7 +99,7 @@ impl TextRenderer {
         let res = self.glyph_brush.borrow_mut().process_queued(
             |rect, pixels| {
                 queue.write_texture(
-                    wgpu::ImageCopyTexture {
+                    wgpu::TexelCopyTextureInfo {
                         texture: &self.cache,
                         mip_level: 0,
                         origin: wgpu::Origin3d {
@@ -115,7 +110,7 @@ impl TextRenderer {
                         aspect: wgpu::TextureAspect::All,
                     },
                     pixels,
-                    wgpu::ImageDataLayout {
+                    wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(rect.width()),
                         rows_per_image: None,
@@ -176,7 +171,7 @@ impl TextRenderer {
                     .borrow_mut()
                     .resize_texture(self.cache_size.0, self.cache_size.1);
 
-                self.cache = ArcTexture::new(device.create_texture(&wgpu::TextureDescriptor {
+                self.cache = device.create_texture(&wgpu::TextureDescriptor {
                     label: None,
                     size: wgpu::Extent3d {
                         width: self.cache_size.0,
@@ -189,21 +184,19 @@ impl TextRenderer {
                     format: wgpu::TextureFormat::R8Unorm,
                     usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
                     view_formats: &[],
-                }));
+                });
 
-                self.cache_view = ArcTextureView::new(
-                    self.cache
-                        .create_view(&wgpu::TextureViewDescriptor::default()),
-                );
+                self.cache_view = self
+                    .cache
+                    .create_view(&wgpu::TextureViewDescriptor::default());
 
                 let cache_bind =
                     BindGroupBuilder::new().image(&self.cache_view, wgpu::ShaderStages::FRAGMENT);
-                self.cache_bind =
-                    ArcBindGroup::new(device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        label: None,
-                        layout: &self.cache_bind_layout,
-                        entries: cache_bind.entries(),
-                    }));
+                self.cache_bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &self.cache_bind_layout,
+                    entries: cache_bind.entries(),
+                });
 
                 self.draw_queued(device, queue, arenas, pass)
             }

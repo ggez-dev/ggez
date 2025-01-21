@@ -1,10 +1,6 @@
 use super::{
-    context::GraphicsContext,
-    gpu::{
-        arc::{ArcBindGroup, ArcSampler, ArcTexture, ArcTextureView},
-        bind_group::BindGroupBuilder,
-    },
-    Canvas, Color, Draw, DrawParam, Drawable, Rect, WgpuContext,
+    context::GraphicsContext, gpu::bind_group::BindGroupBuilder, Canvas, Color, Draw, DrawParam,
+    Drawable, Rect, WgpuContext,
 };
 use crate::{context::Has, Context, GameError, GameResult};
 use image::ImageEncoder;
@@ -26,13 +22,13 @@ pub type ImageEncodingFormat = ::image::ImageFormat;
 /// Handle to an image stored in GPU memory.
 #[derive(Debug, Clone)]
 pub struct Image {
-    pub(crate) texture: ArcTexture,
-    pub(crate) view: ArcTextureView,
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) view: wgpu::TextureView,
     pub(crate) format: ImageFormat,
     pub(crate) width: u32,
     pub(crate) height: u32,
     pub(crate) samples: u32,
-    pub(crate) cache: Arc<RwLock<BTreeMap<u64, ArcBindGroup>>>,
+    pub(crate) cache: Arc<RwLock<BTreeMap<wgpu::Sampler, wgpu::BindGroup>>>,
 }
 
 impl Image {
@@ -138,7 +134,7 @@ impl Image {
         wgpu.queue.write_texture(
             image.texture.as_image_copy(),
             pixels,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(format.block_copy_size(None).unwrap() * width), // Unwrap since it only fails with depth formats.
                 rows_per_image: None,
@@ -193,7 +189,7 @@ impl Image {
         assert!(height > 0);
         assert!(samples > 0);
 
-        let texture = ArcTexture::new(wgpu.device.create_texture(&wgpu::TextureDescriptor {
+        let texture = wgpu.device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d {
                 width,
@@ -206,19 +202,19 @@ impl Image {
             format,
             usage,
             view_formats: &[],
-        }));
+        });
 
-        let view =
-            ArcTextureView::new(texture.as_ref().create_view(&wgpu::TextureViewDescriptor {
-                label: None,
-                format: Some(format),
-                dimension: Some(wgpu::TextureViewDimension::D2),
-                aspect: wgpu::TextureAspect::All,
-                base_mip_level: 0,
-                mip_level_count: Some(1),
-                base_array_layer: 0,
-                array_layer_count: Some(1),
-            }));
+        let view = texture.create_view(&wgpu::TextureViewDescriptor {
+            label: None,
+            format: Some(format),
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            aspect: wgpu::TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: Some(1),
+            base_array_layer: 0,
+            array_layer_count: Some(1),
+            usage: None,
+        });
 
         Image {
             texture,
@@ -271,9 +267,9 @@ impl Image {
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
             encoder.copy_texture_to_buffer(
                 self.texture.as_image_copy(),
-                wgpu::ImageCopyBuffer {
+                wgpu::TexelCopyBufferInfo {
                     buffer: &buffer,
-                    layout: wgpu::ImageDataLayout {
+                    layout: wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(padded_bytes_per_row as u32),
                         rows_per_image: None,
@@ -387,12 +383,11 @@ impl Image {
 
     pub(crate) fn fetch_buffer(
         &self,
-        sample_id: u64,
-        sampler: ArcSampler,
+        sampler: wgpu::Sampler,
         device: &wgpu::Device,
-    ) -> ArcBindGroup {
+    ) -> wgpu::BindGroup {
         // Fast path: already in cache
-        if let Some(buffer) = self.cache.read().unwrap().get(&sample_id) {
+        if let Some(buffer) = self.cache.read().unwrap().get(&sampler) {
             return buffer.clone();
         }
 
@@ -400,11 +395,11 @@ impl Image {
         self.cache
             .write()
             .unwrap()
-            .entry(sample_id)
-            .or_insert_with(|| {
+            .entry(sampler)
+            .or_insert_with_key(|sampler| {
                 BindGroupBuilder::new()
                     .image(&self.view, wgpu::ShaderStages::FRAGMENT)
-                    .sampler(&sampler, wgpu::ShaderStages::FRAGMENT)
+                    .sampler(sampler, wgpu::ShaderStages::FRAGMENT)
                     .create_uncached(device)
                     .0
             })

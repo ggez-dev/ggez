@@ -1,6 +1,6 @@
 use super::{
-    context::GraphicsContext, gpu::arc::ArcBuffer, Canvas, Color, Draw, DrawMode, DrawParam,
-    Drawable, LinearColor, Rect, WgpuContext,
+    context::GraphicsContext, Canvas, Color, Draw, DrawMode, DrawParam, Drawable, LinearColor,
+    Rect, WgpuContext,
 };
 use crate::{context::Has, GameError, GameResult};
 use lyon::{math::Point as LPoint, path::Polygon, tessellation as tess};
@@ -49,8 +49,8 @@ impl Vertex {
 /// Mesh data stored on the GPU as a vertex and index buffer. Cheap to clone.
 #[derive(Debug, Clone)]
 pub struct Mesh {
-    pub(crate) verts: ArcBuffer,
-    pub(crate) inds: ArcBuffer,
+    pub(crate) verts: wgpu::Buffer,
+    pub(crate) inds: wgpu::Buffer,
     pub(crate) vertex_count: usize,
     pub(crate) index_count: usize,
     pub(crate) bounds: Rect,
@@ -224,27 +224,23 @@ impl Mesh {
     }
 
     #[allow(unsafe_code)]
-    fn create_verts(wgpu: &WgpuContext, vertices: &[Vertex]) -> ArcBuffer {
-        ArcBuffer::new(
-            wgpu.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(vertices),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                }),
-        )
+    fn create_verts(wgpu: &WgpuContext, vertices: &[Vertex]) -> wgpu::Buffer {
+        wgpu.device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(vertices),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            })
     }
 
     #[allow(unsafe_code)]
-    fn create_inds(wgpu: &WgpuContext, indices: &[u32]) -> ArcBuffer {
-        ArcBuffer::new(
-            wgpu.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(indices),
-                    usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-                }),
-        )
+    fn create_inds(wgpu: &WgpuContext, indices: &[u32]) -> wgpu::Buffer {
+        wgpu.device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(indices),
+                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            })
     }
 }
 
