@@ -36,7 +36,7 @@ zip = { version = "0.6", default-features = false, features = ["deflate"] }
 directories = "5.0"
 wgpu = "24"
 glyph_brush = "0.7"
-winit = { version = "0.29", features = ["serde"] }
+winit = { version = "0.30", features = ["serde"] }
 image = { version = "0.25", default-features = false, features = ["gif", "png", "pnm", "tga", "tiff", "webp", "bmp", "jpeg"] }
 rodio = { version = "0.20", optional = true, default-features = false, features = ["flac", "vorbis", "wav"] }
 serde = { version = "1.0", features = ["derive"] }
