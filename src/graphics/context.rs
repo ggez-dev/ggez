@@ -686,7 +686,7 @@ impl GraphicsContext {
 
             let (bind, layout) = self.bind_group(fcx.present.view, sampler.clone());
 
-            let layout = self.pipeline_cache.layout(&self.wgpu.device, &[layout]);
+            let layout = self.pipeline_cache.layout(&self.wgpu.device, &[&layout]);
             let copy = self.pipeline_cache.render_pipeline(
                 &self.wgpu.device,
                 RenderPipelineInfo {
