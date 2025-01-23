@@ -15,7 +15,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec4};
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 /// A canvas represents a render pass and is how you render meshes .
 #[allow(missing_debug_implementations)]
@@ -38,9 +38,9 @@ pub struct InternalCanvas3d<'a> {
     samples: u32,
     format: wgpu::TextureFormat,
 
-    draw_sm: Arc<wgpu::ShaderModule>,
-    instance_sm: Arc<wgpu::ShaderModule>,
-    instance_unordered_sm: Arc<wgpu::ShaderModule>,
+    draw_sm: wgpu::ShaderModule,
+    instance_sm: wgpu::ShaderModule,
+    instance_unordered_sm: wgpu::ShaderModule,
 
     transform: glam::Mat4,
     curr_image: Option<wgpu::TextureView>,

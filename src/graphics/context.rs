@@ -74,19 +74,19 @@ pub struct GraphicsContext {
     pub(crate) staging_belt: wgpu::util::StagingBelt,
     pub(crate) uniform_arena: GrowingBufferArena,
 
-    pub(crate) draw_shader: Arc<wgpu::ShaderModule>,
+    pub(crate) draw_shader: wgpu::ShaderModule,
 
     #[cfg(feature = "3d")]
-    pub(crate) draw_shader_3d: Arc<wgpu::ShaderModule>,
+    pub(crate) draw_shader_3d: wgpu::ShaderModule,
     #[cfg(feature = "3d")]
-    pub(crate) instance_shader_3d: Arc<wgpu::ShaderModule>,
+    pub(crate) instance_shader_3d: wgpu::ShaderModule,
     #[cfg(feature = "3d")]
-    pub(crate) instance_unordered_shader_3d: Arc<wgpu::ShaderModule>,
+    pub(crate) instance_unordered_shader_3d: wgpu::ShaderModule,
 
-    pub(crate) instance_shader: Arc<wgpu::ShaderModule>,
-    pub(crate) instance_unordered_shader: Arc<wgpu::ShaderModule>,
-    pub(crate) text_shader: Arc<wgpu::ShaderModule>,
-    pub(crate) copy_shader: Arc<wgpu::ShaderModule>,
+    pub(crate) instance_shader: wgpu::ShaderModule,
+    pub(crate) instance_unordered_shader: wgpu::ShaderModule,
+    pub(crate) text_shader: wgpu::ShaderModule,
+    pub(crate) copy_shader: wgpu::ShaderModule,
     pub(crate) rect_mesh: Mesh,
     pub(crate) white_image: Image,
     pub(crate) instance_bind_layout: wgpu::BindGroupLayout,
@@ -334,68 +334,68 @@ impl GraphicsContext {
             },
         );
 
-        let draw_shader = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
+        let draw_shader = wgpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/draw.wgsl").into()),
-            },
-        ));
+            });
 
         #[cfg(feature = "3d")]
-        let draw_shader_3d = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
+        let draw_shader_3d = wgpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/draw3d.wgsl").into()),
-            },
-        ));
+            });
 
         #[cfg(feature = "3d")]
-        let instance_shader_3d = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
+        let instance_shader_3d = wgpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/instance3d.wgsl").into()),
-            },
-        ));
+            });
 
         #[cfg(feature = "3d")]
-        let instance_unordered_shader_3d = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(
-                    include_str!("shader/instance_unordered3d.wgsl").into(),
-                ),
-            },
-        ));
+        let instance_unordered_shader_3d =
+            wgpu.device
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: None,
+                    source: wgpu::ShaderSource::Wgsl(
+                        include_str!("shader/instance_unordered3d.wgsl").into(),
+                    ),
+                });
 
-        let instance_shader = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
+        let instance_shader = wgpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/instance.wgsl").into()),
-            },
-        ));
+            });
 
-        let instance_unordered_shader = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(
-                    include_str!("shader/instance_unordered.wgsl").into(),
-                ),
-            },
-        ));
+        let instance_unordered_shader =
+            wgpu.device
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: None,
+                    source: wgpu::ShaderSource::Wgsl(
+                        include_str!("shader/instance_unordered.wgsl").into(),
+                    ),
+                });
 
-        let text_shader = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
+        let text_shader = wgpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/text.wgsl").into()),
-            },
-        ));
+            });
 
-        let copy_shader = Arc::new(wgpu.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
+        let copy_shader = wgpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: None,
                 source: wgpu::ShaderSource::Wgsl(include_str!("shader/copy.wgsl").into()),
-            },
-        ));
+            });
 
         let rect_mesh = Mesh::from_data_wgpu(
             &wgpu,

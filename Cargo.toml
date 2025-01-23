@@ -34,7 +34,7 @@ obj = ["obj-rs", "3d"]
 bitflags = "2.1"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 directories = "5.0"
-wgpu = "24"
+wgpu = "24.0.1"
 glyph_brush = "0.7"
 winit = { version = "0.30", features = ["serde"] }
 image = { version = "0.25", default-features = false, features = ["gif", "png", "pnm", "tga", "tiff", "webp", "bmp", "jpeg"] }

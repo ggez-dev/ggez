@@ -1,14 +1,11 @@
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    sync::Arc,
-};
+use std::collections::{hash_map::DefaultHasher, HashMap};
 
 /// Hashable representation of a render pipeline, used as a key in the HashMap cache.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderPipelineInfo {
     pub layout: wgpu::PipelineLayout,
-    pub vs: Arc<wgpu::ShaderModule>,
-    pub fs: Arc<wgpu::ShaderModule>,
+    pub vs: wgpu::ShaderModule,
+    pub fs: wgpu::ShaderModule,
     pub vs_entry: String,
     pub fs_entry: String,
     pub samples: u32,

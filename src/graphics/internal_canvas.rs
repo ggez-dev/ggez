@@ -16,7 +16,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec2, Vec4};
-use std::{collections::HashMap, hash::Hash, sync::Arc};
+use std::{collections::HashMap, hash::Hash};
 
 /// A canvas represents a render pass and is how you render primitives such as meshes and text onto images.
 #[allow(missing_debug_implementations)]
@@ -44,10 +44,10 @@ pub struct InternalCanvas<'a> {
     format: wgpu::TextureFormat,
     text_uniforms: ArenaAllocation,
 
-    draw_sm: Arc<wgpu::ShaderModule>,
-    instance_sm: Arc<wgpu::ShaderModule>,
-    instance_unordered_sm: Arc<wgpu::ShaderModule>,
-    text_sm: Arc<wgpu::ShaderModule>,
+    draw_sm: wgpu::ShaderModule,
+    instance_sm: wgpu::ShaderModule,
+    instance_unordered_sm: wgpu::ShaderModule,
+    text_sm: wgpu::ShaderModule,
 
     transform: glam::Mat4,
     curr_image: Option<wgpu::TextureView>,

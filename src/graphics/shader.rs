@@ -1,5 +1,4 @@
-use std::marker::PhantomData;
-use std::{io::Read, sync::Arc};
+use std::{io::Read, marker::PhantomData};
 
 use crate::{context::Has, Context, GameError, GameResult};
 
@@ -89,21 +88,23 @@ impl<'a> ShaderBuilder<'a> {
     pub fn build(self, gfx: &impl Has<GraphicsContext>) -> GameResult<Shader> {
         let gfx = gfx.retrieve();
         let load = |s: &str| {
-            Some(Arc::new(gfx.wgpu.device.create_shader_module(
-                wgpu::ShaderModuleDescriptor {
-                    label: None,
-                    source: wgpu::ShaderSource::Wgsl(s.into()),
-                },
-            )))
+            Some(
+                gfx.wgpu
+                    .device
+                    .create_shader_module(wgpu::ShaderModuleDescriptor {
+                        label: None,
+                        source: wgpu::ShaderSource::Wgsl(s.into()),
+                    }),
+            )
         };
-        let load_resource = |path: &str| -> GameResult<Option<Arc<wgpu::ShaderModule>>> {
+        let load_resource = |path: &str| -> GameResult<Option<wgpu::ShaderModule>> {
             let mut encoded = Vec::new();
             _ = gfx.fs.open(path)?.read_to_end(&mut encoded)?;
             Ok(load(
                 &String::from_utf8(encoded).map_err(GameError::ShaderEncodingError)?,
             ))
         };
-        let load_any = |source| -> GameResult<Option<Arc<wgpu::ShaderModule>>> {
+        let load_any = |source| -> GameResult<Option<wgpu::ShaderModule>> {
             Ok(match source {
                 ShaderSource::Code(source) => load(source),
                 ShaderSource::Path(source) => load_resource(source)?,
@@ -185,8 +186,8 @@ impl Default for ShaderBuilder<'_> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Shader {
-    pub(crate) vs_module: Option<Arc<wgpu::ShaderModule>>,
-    pub(crate) fs_module: Option<Arc<wgpu::ShaderModule>>,
+    pub(crate) vs_module: Option<wgpu::ShaderModule>,
+    pub(crate) fs_module: Option<wgpu::ShaderModule>,
 }
 
 impl Shader {
