@@ -38,9 +38,9 @@ pub struct InternalCanvas3d<'a> {
     samples: u32,
     format: wgpu::TextureFormat,
 
-    draw_sm: wgpu::ShaderModule,
-    instance_sm: wgpu::ShaderModule,
-    instance_unordered_sm: wgpu::ShaderModule,
+    draw_sm: &'a wgpu::ShaderModule,
+    instance_sm: &'a wgpu::ShaderModule,
+    instance_unordered_sm: &'a wgpu::ShaderModule,
 
     transform: glam::Mat4,
     curr_image: Option<wgpu::TextureView>,
@@ -204,9 +204,9 @@ impl<'a> InternalCanvas3d<'a> {
             samples,
             format,
 
-            draw_sm: gfx.draw_shader_3d.clone(),
-            instance_sm: gfx.instance_shader_3d.clone(),
-            instance_unordered_sm: gfx.instance_unordered_shader_3d.clone(),
+            draw_sm: &gfx.draw_shader_3d,
+            instance_sm: &gfx.instance_shader_3d,
+            instance_unordered_sm: &gfx.instance_unordered_shader_3d,
 
             transform,
             curr_image: None,

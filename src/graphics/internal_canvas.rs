@@ -44,10 +44,10 @@ pub struct InternalCanvas<'a> {
     format: wgpu::TextureFormat,
     text_uniforms: ArenaAllocation,
 
-    draw_sm: wgpu::ShaderModule,
-    instance_sm: wgpu::ShaderModule,
-    instance_unordered_sm: wgpu::ShaderModule,
-    text_sm: wgpu::ShaderModule,
+    draw_sm: &'a wgpu::ShaderModule,
+    instance_sm: &'a wgpu::ShaderModule,
+    instance_unordered_sm: &'a wgpu::ShaderModule,
+    text_sm: &'a wgpu::ShaderModule,
 
     transform: glam::Mat4,
     curr_image: Option<wgpu::TextureView>,
@@ -216,10 +216,10 @@ impl<'a> InternalCanvas<'a> {
             format,
             text_uniforms,
 
-            draw_sm: gfx.draw_shader.clone(),
-            instance_sm: gfx.instance_shader.clone(),
-            instance_unordered_sm: gfx.instance_unordered_shader.clone(),
-            text_sm: gfx.text_shader.clone(),
+            draw_sm: &gfx.draw_shader,
+            instance_sm: &gfx.instance_shader,
+            instance_unordered_sm: &gfx.instance_unordered_shader,
+            text_sm: &gfx.text_shader,
 
             transform,
             curr_image: None,
