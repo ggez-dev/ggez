@@ -92,7 +92,7 @@ pub fn transform_rect(rect: Rect, param: DrawParam) -> Rect {
     }
 }
 
-use crate::{context::Has, GameResult};
+use crate::{conf::WindowIcon, context::Has, GameResult};
 use mint::Point2;
 use std::path::Path;
 
@@ -111,8 +111,19 @@ pub fn set_window_icon<P: AsRef<Path>>(
     ctx: &impl Has<GraphicsContext>,
     path: impl Into<Option<P>>,
 ) -> GameResult {
+    use std::io::Read;
     let gfx: &GraphicsContext = ctx.retrieve();
-    gfx.set_window_icon(&gfx.fs, path)
+    let icon = match path.into() {
+        Some(p) => {
+            let mut buf = Vec::new();
+            let mut reader = gfx.fs.open(p)?;
+            let _ = reader.read_to_end(&mut buf)?;
+            WindowIcon::Bytes(buf)
+        }
+        None => WindowIcon::Path(String::new()),
+    };
+
+    gfx.set_window_icon(&gfx.fs, &icon)
 }
 
 /// Sets the window position.

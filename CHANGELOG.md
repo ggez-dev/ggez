@@ -94,6 +94,7 @@ General examples:
 
 - `EventHandler` now takes another generic in form of whatever context implementation you are using whether that be the default one of a custom one
 - `Drawable::dimensions` now returns a `Rect` instead of an `Option<Rect>`
+- `WindowSetup.icon` now is it's own type `WindowIcon` which is an enum that can either be a `String` or a `Vec<u8>` depending on if you want to load from filesystem at runtime or hardcode bytes
 - Dependencies updates (including public ones)
 
 ## Removed

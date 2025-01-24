@@ -12,7 +12,7 @@ use super::{
     MeshData, ScreenImage,
 };
 use crate::{
-    conf::{self, Backend, Conf, FullscreenType, WindowMode},
+    conf::{self, Backend, Conf, FullscreenType, WindowIcon, WindowMode},
     context::Has,
     error::GameResult,
     filesystem::{Filesystem, InternalClone},
@@ -21,7 +21,7 @@ use crate::{
 };
 use glyph_brush::FontId;
 use image as imgcrate;
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use typed_arena::Arena as TypedArena;
 use winit::dpi::{self, PhysicalPosition};
 
@@ -238,7 +238,7 @@ impl GraphicsContext {
         }
 
         window_builder = if !conf.window_setup.icon.is_empty() {
-            let icon = load_icon(conf.window_setup.icon.as_ref(), filesystem)?;
+            let icon = load_icon(&conf.window_setup.icon, filesystem)?;
             window_builder.with_window_icon(Some(icon))
         } else {
             window_builder
@@ -548,16 +548,17 @@ impl GraphicsContext {
         &self.window
     }
 
-    /// Sets the window icon. `None` for path removes the icon.
-    pub fn set_window_icon<P: AsRef<Path>>(
+    /// Sets the window icon. If the WindowIcon is the path version and is empty it will remove the icon
+    pub fn set_window_icon(
         &self,
         filesystem: &impl Has<Filesystem>,
-        path: impl Into<Option<P>>,
+        icon: &WindowIcon,
     ) -> GameResult {
         let filesystem = filesystem.retrieve();
-        let icon = match path.into() {
-            Some(p) => Some(load_icon(p.as_ref(), filesystem)?),
-            None => None,
+        let icon = if !icon.is_empty() {
+            Some(load_icon(icon, filesystem)?)
+        } else {
+            None
         };
         self.window.set_window_icon(icon);
         Ok(())
@@ -835,15 +836,21 @@ impl GraphicsContext {
 // having `winit` try to do the image loading for us.
 // see https://github.com/tomaka/winit/issues/661
 pub(crate) fn load_icon(
-    icon_file: &Path,
+    icon: &WindowIcon,
     filesystem: &Filesystem,
 ) -> GameResult<winit::window::Icon> {
     use std::io::Read;
     use winit::window::Icon;
 
-    let mut buf = Vec::new();
-    let mut reader = filesystem.open(icon_file)?;
-    let _ = reader.read_to_end(&mut buf)?;
+    let buf = match icon {
+        WindowIcon::Path(x) => {
+            let mut buf = Vec::new();
+            let mut reader = filesystem.open(x)?;
+            let _ = reader.read_to_end(&mut buf)?;
+            buf
+        }
+        WindowIcon::Bytes(x) => x.clone(),
+    };
     let i = imgcrate::load_from_memory(&buf)?;
     let image_data = i.to_rgba8();
     Icon::from_rgba(image_data.to_vec(), i.width(), i.height()).map_err(|e| {

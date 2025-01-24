@@ -33,6 +33,30 @@ pub enum FullscreenType {
     Desktop,
 }
 
+/// Enum for the window icon. Can either be a path in the form of a string or an array of bytes.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub enum WindowIcon {
+    /// The path to load the icon from
+    Path(String),
+    /// An array of bytes that is the icon
+    Bytes(Vec<u8>),
+}
+
+impl Default for WindowIcon {
+    fn default() -> Self {
+        Self::Path(String::new())
+    }
+}
+
+impl WindowIcon {
+    pub(crate) fn is_empty(&self) -> bool {
+        match self {
+            WindowIcon::Path(x) => x.is_empty(),
+            WindowIcon::Bytes(_) => false,
+        }
+    }
+}
+
 /// A builder structure containing window settings
 /// that can be set at runtime and changed with [`graphics::set_mode()`](../graphics/fn.set_mode.html).
 ///
@@ -254,8 +278,8 @@ pub struct WindowSetup {
     /// A file path to the window's icon.
     /// It takes a path rooted in the `resources` directory (see the [`filesystem`](../filesystem/index.html)
     /// module for details), and an empty string results in a blank/default icon.
-    #[default(String::new())]
-    pub icon: String,
+    #[default(WindowIcon::default())]
+    pub icon: WindowIcon,
     /// Whether or not to enable sRGB (gamma corrected color)
     /// handling on the display.
     #[default = true]
@@ -286,8 +310,8 @@ impl WindowSetup {
 
     /// Set the window's icon.
     #[must_use]
-    pub fn icon(mut self, icon: &str) -> Self {
-        icon.clone_into(&mut self.icon);
+    pub fn icon(mut self, icon: WindowIcon) -> Self {
+        self.icon = icon;
         self
     }
 
