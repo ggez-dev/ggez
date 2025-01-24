@@ -359,17 +359,13 @@ pub trait Drawable3d {
     fn draw(&self, canvas: &mut Canvas3d, param: impl Into<DrawParam3d>);
 }
 
-#[derive(Debug, Copy, Clone, crevice::std140::AsStd140)]
+#[derive(Debug, Copy, Clone, crevice::std140::AsStd140, bytemuck::Zeroable, bytemuck::Pod)]
+#[repr(C)]
 pub(crate) struct DrawUniforms3d {
     pub color: Vec4,
     pub model_transform: Mat4,
     pub camera_transform: Mat4,
 }
-
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Zeroable for DrawUniforms3d {}
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Pod for DrawUniforms3d {}
 
 impl DrawUniforms3d {
     pub fn from_param(param: &DrawParam3d) -> Self {

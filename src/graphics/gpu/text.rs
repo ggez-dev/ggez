@@ -1,5 +1,5 @@
 use super::{bind_group::BindGroupBuilder, growing::GrowingBufferArena};
-use crate::graphics::{context::FrameArenas, LinearColor};
+use crate::graphics::LinearColor;
 use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
 use ordered_float::OrderedFloat;
 use std::cell::RefCell;
@@ -88,13 +88,11 @@ impl TextRenderer {
         self.glyph_brush.borrow_mut().queue(section);
     }
 
-    #[allow(unsafe_code)]
-    pub(crate) fn draw_queued<'a>(
+    pub(crate) fn draw_queued(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        arenas: &'a FrameArenas,
-        pass: &mut wgpu::RenderPass<'a>,
+        pass: &mut wgpu::RenderPass<'_>,
     ) {
         let res = self.glyph_brush.borrow_mut().process_queued(
             |rect, pixels| {
@@ -155,8 +153,7 @@ impl TextRenderer {
 
                 queue.write_buffer(&buffer, offset, bytemuck::cast_slice(verts.as_slice()));
 
-                let verts_buf = arenas.buffers.alloc(buffer);
-                pass.set_vertex_buffer(0, verts_buf.slice(offset..));
+                pass.set_vertex_buffer(0, buffer.slice(offset..));
 
                 // N.B.: 1 glyph = 4 verts, then n glyphs = n instances.
                 // Also note that vertex data is stepped PER INSTANCE.
@@ -198,7 +195,7 @@ impl TextRenderer {
                     entries: cache_bind.entries(),
                 });
 
-                self.draw_queued(device, queue, arenas, pass)
+                self.draw_queued(device, queue, pass)
             }
             _ => unreachable!(),
         }

@@ -367,11 +367,6 @@ impl Canvas3d {
         });
     }
 
-    #[inline]
-    pub(crate) fn default_resources(&self) -> &DefaultResources3d {
-        &self.defaults
-    }
-
     fn finalize(&mut self, gfx: &mut GraphicsContext) -> GameResult {
         let mut canvas = if let Some(resolve) = &self.resolve {
             InternalCanvas3d::from_msaa(gfx, self.clear, &self.target, &self.target_depth, resolve)?
@@ -433,11 +428,8 @@ impl Canvas3d {
 
             match &draw.draw {
                 Draw3d::Mesh { mesh } => {
-                    if let Some(image) = mesh.texture.clone() {
-                        canvas.draw_mesh(mesh, &image, idx)
-                    } else {
-                        canvas.draw_mesh(mesh, &self.default_resources().image, idx)
-                    }
+                    let image = mesh.texture.as_ref().unwrap_or(&self.defaults.image);
+                    canvas.draw_mesh(mesh, image, idx);
                 }
                 Draw3d::MeshInstances { mesh, instances } => {
                     canvas.draw_mesh_instances(mesh, instances, draw.param)?
