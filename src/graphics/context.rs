@@ -22,22 +22,13 @@ use crate::{
 use glyph_brush::FontId;
 use image as imgcrate;
 use std::{collections::HashMap, path::Path, sync::Arc};
-use typed_arena::Arena as TypedArena;
 use winit::dpi::{self, PhysicalPosition};
 
 pub(crate) struct FrameContext {
     pub cmd: wgpu::CommandEncoder,
     pub present: Image,
-    pub arenas: FrameArenas,
     pub frame: wgpu::SurfaceTexture,
     pub frame_view: wgpu::TextureView,
-}
-
-#[derive(Default)]
-pub(crate) struct FrameArenas {
-    pub buffers: TypedArena<wgpu::Buffer>,
-    pub render_pipelines: TypedArena<wgpu::RenderPipeline>,
-    pub bind_groups: TypedArena<wgpu::BindGroup>,
 }
 
 /// WGPU graphics context objects.
@@ -648,7 +639,6 @@ impl GraphicsContext {
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor::default()),
             present: self.frame().clone(),
-            arenas: FrameArenas::default(),
             frame,
             frame_view,
         });
@@ -706,11 +696,8 @@ impl GraphicsContext {
                 },
             );
 
-            let copy = fcx.arenas.render_pipelines.alloc(copy);
-            let bind = fcx.arenas.bind_groups.alloc(bind);
-
-            present_pass.set_pipeline(copy);
-            present_pass.set_bind_group(0, &*bind, &[]);
+            present_pass.set_pipeline(&copy);
+            present_pass.set_bind_group(0, &bind, &[]);
             present_pass.draw(0..3, 0..1);
 
             std::mem::drop(present_pass);
