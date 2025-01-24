@@ -15,7 +15,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec4};
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 /// A canvas represents a render pass and is how you render meshes .
 #[allow(missing_debug_implementations)]
@@ -38,9 +38,9 @@ pub struct InternalCanvas3d<'a> {
     samples: u32,
     format: wgpu::TextureFormat,
 
-    draw_sm: Arc<wgpu::ShaderModule>,
-    instance_sm: Arc<wgpu::ShaderModule>,
-    instance_unordered_sm: Arc<wgpu::ShaderModule>,
+    draw_sm: &'a wgpu::ShaderModule,
+    instance_sm: &'a wgpu::ShaderModule,
+    instance_unordered_sm: &'a wgpu::ShaderModule,
 
     transform: glam::Mat4,
     curr_image: Option<wgpu::TextureView>,
@@ -204,9 +204,9 @@ impl<'a> InternalCanvas3d<'a> {
             samples,
             format,
 
-            draw_sm: gfx.draw_shader_3d.clone(),
-            instance_sm: gfx.instance_shader_3d.clone(),
-            instance_unordered_sm: gfx.instance_unordered_shader_3d.clone(),
+            draw_sm: &gfx.draw_shader_3d,
+            instance_sm: &gfx.instance_shader_3d,
+            instance_unordered_sm: &gfx.instance_unordered_shader_3d,
 
             transform,
             curr_image: None,
@@ -429,13 +429,13 @@ impl<'a> InternalCanvas3d<'a> {
             let (dummy_group, dummy_layout) =
                 BindGroupBuilder::new().create(&self.wgpu.device, self.bind_group_cache);
 
-            let mut groups = vec![uniform_layout, texture_layout];
+            let mut groups = vec![&uniform_layout, &texture_layout];
 
             if let ShaderType3d::Instance { .. } = ty {
-                groups.push(instance_layout);
+                groups.push(&instance_layout);
             } else {
                 // the dummy group ensures the user's bind group is at index 3
-                groups.push(dummy_layout);
+                groups.push(&dummy_layout);
                 self.pass
                     .set_bind_group(2, &*self.arenas.bind_groups.alloc(dummy_group), &[]);
             }
@@ -446,7 +446,7 @@ impl<'a> InternalCanvas3d<'a> {
                         self.shader_bind_group
                     {
                         self.pass.set_bind_group(3, bind_group, &[offset]);
-                        groups.push(bind_group_layout.clone());
+                        groups.push(bind_group_layout);
                     }
 
                     &self.shader

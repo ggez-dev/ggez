@@ -16,7 +16,7 @@ use super::{
 use crate::{GameError, GameResult};
 use crevice::std140::AsStd140;
 use glam::{Mat4, Vec2, Vec4};
-use std::{collections::HashMap, hash::Hash, sync::Arc};
+use std::{collections::HashMap, hash::Hash};
 
 /// A canvas represents a render pass and is how you render primitives such as meshes and text onto images.
 #[allow(missing_debug_implementations)]
@@ -44,10 +44,10 @@ pub struct InternalCanvas<'a> {
     format: wgpu::TextureFormat,
     text_uniforms: ArenaAllocation,
 
-    draw_sm: Arc<wgpu::ShaderModule>,
-    instance_sm: Arc<wgpu::ShaderModule>,
-    instance_unordered_sm: Arc<wgpu::ShaderModule>,
-    text_sm: Arc<wgpu::ShaderModule>,
+    draw_sm: &'a wgpu::ShaderModule,
+    instance_sm: &'a wgpu::ShaderModule,
+    instance_unordered_sm: &'a wgpu::ShaderModule,
+    text_sm: &'a wgpu::ShaderModule,
 
     transform: glam::Mat4,
     curr_image: Option<wgpu::TextureView>,
@@ -216,10 +216,10 @@ impl<'a> InternalCanvas<'a> {
             format,
             text_uniforms,
 
-            draw_sm: gfx.draw_shader.clone(),
-            instance_sm: gfx.instance_shader.clone(),
-            instance_unordered_sm: gfx.instance_unordered_shader.clone(),
-            text_sm: gfx.text_shader.clone(),
+            draw_sm: &gfx.draw_shader,
+            instance_sm: &gfx.instance_shader,
+            instance_unordered_sm: &gfx.instance_unordered_shader,
+            text_sm: &gfx.text_shader,
 
             transform,
             curr_image: None,
@@ -552,13 +552,13 @@ impl<'a> InternalCanvas<'a> {
             let (dummy_group, dummy_layout) =
                 BindGroupBuilder::new().create(&self.wgpu.device, self.bind_group_cache);
 
-            let mut groups = vec![uniform_layout, texture_layout];
+            let mut groups = vec![&uniform_layout, &texture_layout];
 
             if let ShaderType::Instance { .. } = ty {
-                groups.push(instance_layout);
+                groups.push(&instance_layout);
             } else {
                 // the dummy group ensures the user's bind group is at index 3
-                groups.push(dummy_layout);
+                groups.push(&dummy_layout);
                 self.pass
                     .set_bind_group(2, &*self.arenas.bind_groups.alloc(dummy_group), &[]);
             }
@@ -569,7 +569,7 @@ impl<'a> InternalCanvas<'a> {
                         self.shader_bind_group
                     {
                         self.pass.set_bind_group(3, bind_group, &[offset]);
-                        groups.push(bind_group_layout.clone());
+                        groups.push(bind_group_layout);
                     }
 
                     &self.shader
@@ -579,7 +579,7 @@ impl<'a> InternalCanvas<'a> {
                         self.text_shader_bind_group
                     {
                         self.pass.set_bind_group(3, bind_group, &[offset]);
-                        groups.push(bind_group_layout.clone());
+                        groups.push(bind_group_layout);
                     }
 
                     &self.text_shader

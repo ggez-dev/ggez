@@ -1,14 +1,11 @@
-use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
-    sync::Arc,
-};
+use std::collections::{hash_map::DefaultHasher, HashMap};
 
 /// Hashable representation of a render pipeline, used as a key in the HashMap cache.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderPipelineInfo {
     pub layout: wgpu::PipelineLayout,
-    pub vs: Arc<wgpu::ShaderModule>,
-    pub fs: Arc<wgpu::ShaderModule>,
+    pub vs: wgpu::ShaderModule,
+    pub fs: wgpu::ShaderModule,
     pub vs_entry: String,
     pub fs_entry: String,
     pub samples: u32,
@@ -96,12 +93,12 @@ impl PipelineCache {
     pub fn layout(
         &mut self,
         device: &wgpu::Device,
-        bind_groups: &[wgpu::BindGroupLayout],
+        bind_group_layouts: &[&wgpu::BindGroupLayout],
     ) -> wgpu::PipelineLayout {
         let key = {
             use std::hash::{Hash, Hasher};
             let mut h = DefaultHasher::new();
-            for bg in bind_groups {
+            for bg in bind_group_layouts {
                 bg.hash(&mut h);
             }
             h.finish()
@@ -111,7 +108,7 @@ impl PipelineCache {
             .or_insert_with(|| {
                 device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: None,
-                    bind_group_layouts: &bind_groups.iter().collect::<Vec<_>>(),
+                    bind_group_layouts,
                     push_constant_ranges: &[],
                 })
             })
