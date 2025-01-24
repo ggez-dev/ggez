@@ -307,7 +307,6 @@ impl<'a> InternalCanvas<'a> {
         self.pass.set_scissor_rect(x, y, w, h);
     }
 
-    #[allow(unsafe_code)]
     pub fn draw_mesh(&mut self, mesh: &'a Mesh, image: &Image, param: DrawParam, scale: bool) {
         self.flush_text();
 

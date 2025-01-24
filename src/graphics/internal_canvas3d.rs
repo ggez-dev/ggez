@@ -282,7 +282,6 @@ impl<'a> InternalCanvas3d<'a> {
         self.uniform_alloc = Some(uniform_alloc);
     }
 
-    #[allow(unsafe_code)]
     pub fn draw_mesh(&mut self, mesh: &'a RenderedMesh3d, image: &Image, idx: usize) {
         self.update_pipeline(ShaderType3d::Draw);
 

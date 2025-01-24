@@ -88,7 +88,6 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-    #[allow(unsafe_code)]
     /// Create a new graphics context
     pub fn new(
         game_id: &str,
@@ -187,7 +186,6 @@ impl GraphicsContext {
         (bind_group, layout)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn new_from_instance(
         #[allow(unused_variables)] game_id: &str,
         instance: wgpu::Instance,

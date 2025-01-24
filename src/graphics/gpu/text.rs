@@ -88,7 +88,6 @@ impl TextRenderer {
         self.glyph_brush.borrow_mut().queue(section);
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn draw_queued(
         &mut self,
         device: &wgpu::Device,
