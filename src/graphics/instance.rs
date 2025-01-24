@@ -289,15 +289,12 @@ impl InstanceArray {
         self.sort_by = sort_by;
     }
 
-    /// This is equivalent to `<InstanceArray as Drawable>::dimensions()` (see [`Drawable::dimensions()`]), but with a mesh taken into account.
-    ///
-    /// Essentially, consider `<InstanceArray as Drawable>::dimensions()` to be the bounds when the [`InstanceArray`] is drawn with `canvas.draw()`,
-    /// and consider [`InstanceArray::dimensions_meshed()`] to be the bounds when the [`InstanceArray`] is drawn with `canvas.draw_instanced_mesh()`.
-    pub fn dimensions_meshed(&self, gfx: &impl Has<GraphicsContext>, mesh: &Mesh) -> Rect {
+    /// Calculates the bounding box of the set of instances already pushed into the array, using the mesh given as reference.
+    pub fn bounding_box(&self, mesh: &Mesh) -> Rect {
         if self.params.is_empty() {
             return Rect::new(0.0, 0.0, 1.0, 1.0);
         }
-        let dimensions = mesh.dimensions(gfx);
+        let dimensions = mesh.bounds;
         self.params
             .iter()
             .map(|&param| transform_rect(dimensions, param))
@@ -321,17 +318,5 @@ impl Drawable for InstanceArray {
             },
             param.into(),
         );
-    }
-
-    fn dimensions(&self, gfx: &impl Has<GraphicsContext>) -> Rect {
-        let gfx = gfx.retrieve();
-        if self.params.is_empty() {
-            return Rect::new(0.0, 0.0, 1.0, 1.0);
-        }
-        let dimensions = self.image.dimensions(gfx);
-        self.params
-            .iter()
-            .map(|&param| transform_rect(dimensions, param))
-            .fold(Rect::zero(), |acc: Rect, rect| acc.combine_with(rect))
     }
 }

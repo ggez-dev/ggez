@@ -1,12 +1,9 @@
 //! This example demonstrates how to use `Text` to draw TrueType font texts efficiently.
 
+use ggez::conf::{WindowMode, WindowSetup};
 use ggez::glam::Vec2;
 use ggez::graphics::{self, Color, PxScale, Text, TextAlign, TextFragment};
 use ggez::timer;
-use ggez::{
-    conf::{WindowMode, WindowSetup},
-    graphics::Drawable,
-};
 use ggez::{event, graphics::TextLayout};
 use ggez::{Context, ContextBuilder, GameResult};
 use std::collections::BTreeMap;
@@ -157,7 +154,7 @@ impl event::EventHandler for App {
             };
             canvas.draw(text, Vec2::new(x, 20.0 + height));
             //height += 20.0 + text.height(ctx) as f32;
-            height += 20.0 + text.dimensions(ctx).h
+            height += 20.0 + text.measure(ctx)?.y
         }
 
         // Individual fragments within the `Text` can be replaced;
@@ -176,7 +173,7 @@ impl event::EventHandler for App {
                 TextFragment::new(ch).scale(PxScale::from(10.0 + 6.0 * self.rng.rand_float())),
             );
         }
-        let wobble_rect = wobble.dimensions(ctx);
+        let wobble_bounds = wobble.measure(ctx)?;
         canvas.draw(
             &wobble,
             graphics::DrawParam::new()
@@ -186,7 +183,7 @@ impl event::EventHandler for App {
         );
         let t = Text::new(format!(
             "width: {}\nheight: {}",
-            wobble_rect.w, wobble_rect.h
+            wobble_bounds.x, wobble_bounds.y
         ));
         canvas.draw(&t, graphics::DrawParam::from([500.0, 320.0]).rotation(-0.5));
 

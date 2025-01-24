@@ -93,10 +93,11 @@ General examples:
 ## Changed
 
 - `EventHandler` now takes another generic in form of whatever context implementation you are using whether that be the default one of a custom one
-- `Drawable::dimensions` now returns a `Rect` instead of an `Option<Rect>`
 - Dependencies updates (including public ones)
+- `InstanceArray::dimensions_meshed` has been renamed to `bounding_box` and no longer requires a context as parameter
 
 ## Removed
+- `Drawable::dimensions`, as its usage wasn't clear enough and it was not used internally either. For meshes, use `Mesh::bounding_box()` instead, and for texts use `Text::measure()`.
 
 ## Fixed
 - `Image::to_pixels` no longer crashes and works properly
