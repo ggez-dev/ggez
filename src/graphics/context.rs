@@ -62,7 +62,6 @@ pub struct GraphicsContext {
     pub(crate) fcx: Option<FrameContext>,
     pub(crate) text: TextRenderer,
     pub(crate) fonts: HashMap<String, FontId>,
-    pub(crate) staging_belt: wgpu::util::StagingBelt,
     pub(crate) uniform_arena: GrowingBufferArena,
 
     pub(crate) draw_shader: wgpu::ShaderModule,
@@ -311,7 +310,6 @@ impl GraphicsContext {
 
         let text = TextRenderer::new(&wgpu.device, image_bind_layout);
 
-        let staging_belt = wgpu::util::StagingBelt::new(1024);
         let uniform_arena = GrowingBufferArena::new(
             &wgpu.device,
             u64::from(wgpu.device.limits().min_uniform_buffer_offset_alignment),
@@ -410,7 +408,6 @@ impl GraphicsContext {
             fcx: None,
             text,
             fonts: HashMap::new(),
-            staging_belt,
             uniform_arena,
             draw_shader,
 
@@ -700,11 +697,8 @@ impl GraphicsContext {
 
             std::mem::drop(present_pass);
 
-            self.staging_belt.finish();
             let _ = self.wgpu.queue.submit([fcx.cmd.finish()]);
             fcx.frame.present();
-
-            self.staging_belt.recall();
 
             Ok(())
         } else {
