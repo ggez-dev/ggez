@@ -595,8 +595,8 @@ impl<'a> InternalCanvas<'a> {
                             ShaderType::Text => self.text_sm.clone(),
                         }
                     },
-                    vs_entry: "vs_main".into(),
-                    fs_entry: "fs_main".into(),
+                    vs_entry: "vs_main",
+                    fs_entry: "fs_main",
                     samples: self.samples,
                     format: self.format,
                     blend: Some(wgpu::BlendState {

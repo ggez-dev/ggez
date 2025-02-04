@@ -6,8 +6,8 @@ pub struct RenderPipelineInfo {
     pub layout: wgpu::PipelineLayout,
     pub vs: wgpu::ShaderModule,
     pub fs: wgpu::ShaderModule,
-    pub vs_entry: String,
-    pub fs_entry: String,
+    pub vs_entry: &'static str,
+    pub fs_entry: &'static str,
     pub samples: u32,
     pub format: wgpu::TextureFormat,
     pub blend: Option<wgpu::BlendState>,
@@ -48,7 +48,7 @@ impl PipelineCache {
                     layout: Some(&info.layout),
                     vertex: wgpu::VertexState {
                         module: &info.vs,
-                        entry_point: Some(&info.vs_entry),
+                        entry_point: Some("vs_main"),
                         compilation_options: wgpu::PipelineCompilationOptions::default(),
                         buffers: if info.vertices { &vertex_buffers } else { &[] },
                     },
@@ -75,7 +75,7 @@ impl PipelineCache {
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &info.fs,
-                        entry_point: Some(&info.fs_entry),
+                        entry_point: Some("fs_main"),
                         compilation_options: wgpu::PipelineCompilationOptions::default(),
                         targets: &[Some(wgpu::ColorTargetState {
                             format: info.format,
