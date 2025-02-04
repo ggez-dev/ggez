@@ -665,11 +665,11 @@ impl GraphicsContext {
                 timestamp_writes: None,
             });
 
-            let sampler = &mut self
+            let sampler = self
                 .sampler_cache
                 .get(&self.wgpu.device, Sampler::default());
 
-            let (bind, layout) = self.bind_group(fcx.present.view, sampler.clone());
+            let (bind, layout) = self.bind_group(fcx.present.view, sampler);
 
             let layout = self.pipeline_cache.layout(&self.wgpu.device, &[&layout]);
             let copy = self.pipeline_cache.render_pipeline(
