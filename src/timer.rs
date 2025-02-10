@@ -12,7 +12,7 @@
 //! way to cap your displayed framerate.
 //!
 //! For a more detailed tutorial in how to handle frame timings in games,
-//! see <http://gafferongames.com/game-physics/fix-your-timestep/>
+//! see <https://gafferongames.com/post/fix_your_timestep/>
 
 use std::{cmp, f64, thread, time};
 
@@ -162,7 +162,7 @@ impl TimeContext {
     /// If called in a loop it may therefore return true once, twice or not at all, depending on
     /// how much time elapsed since the last frame.
     ///
-    /// For more info on the idea behind this see <http://gafferongames.com/game-physics/fix-your-timestep/>.
+    /// For more info on the idea behind this see <https://gafferongames.com/post/fix_your_timestep/>.
     ///
     /// Due to the global nature of this timer it's desirable to only use this function at one point
     /// of your code. If you want to limit the frame rate in both game logic and drawing consider writing
@@ -190,7 +190,7 @@ impl TimeContext {
     /// The intention is for it to be called in your
     /// [`draw()`](../event/trait.EventHandler.html#tymethod.draw) callback
     /// to interpolate physics states for smooth rendering.
-    /// (see <http://gafferongames.com/game-physics/fix-your-timestep/>)
+    /// (see <https://gafferongames.com/post/fix_your_timestep/>)
     pub fn remaining_update_time(&self) -> time::Duration {
         self.residual_update_dt
     }
@@ -269,7 +269,7 @@ pub fn time_since_start(ctx: &Context) -> time::Duration {
 /// If called in a loop it may therefore return true once, twice or not at all, depending on
 /// how much time elapsed since the last frame.
 ///
-/// For more info on the idea behind this see <http://gafferongames.com/game-physics/fix-your-timestep/>.
+/// For more info on the idea behind this see <https://gafferongames.com/post/fix_your_timestep/>.
 ///
 /// Due to the global nature of this timer it's desirable to only use this function at one point
 /// of your code. If you want to limit the frame rate in both game logic and drawing consider writing
@@ -300,7 +300,7 @@ pub fn check_update_time(ctx: &mut Context, target_fps: u32) -> bool {
 /// The intention is for it to be called in your
 /// [`draw()`](../event/trait.EventHandler.html#tymethod.draw) callback
 /// to interpolate physics states for smooth rendering.
-/// (see <http://gafferongames.com/game-physics/fix-your-timestep/>)
+/// (see <https://gafferongames.com/post/fix_your_timestep/>)
 #[deprecated(note = "Use `ctx.time.remaining_update_time` instead")]
 pub fn remaining_update_time(ctx: &Context) -> time::Duration {
     ctx.time.residual_update_dt
