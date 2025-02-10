@@ -320,17 +320,13 @@ pub trait Drawable {
     fn dimensions(&self, gfx: &impl Has<GraphicsContext>) -> Rect;
 }
 
-#[derive(Debug, Copy, Clone, crevice::std140::AsStd140)]
+#[derive(Debug, Copy, Clone, crevice::std140::AsStd140, bytemuck::Zeroable, bytemuck::Pod)]
+#[repr(C)]
 pub(crate) struct DrawUniforms {
     pub color: Vec4,
     pub src_rect: Vec4,
     pub transform: Mat4,
 }
-
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Zeroable for DrawUniforms {}
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Pod for DrawUniforms {}
 
 impl DrawUniforms {
     pub fn from_param(param: &DrawParam, image_scale: Option<mint::Vector2<f32>>) -> Self {

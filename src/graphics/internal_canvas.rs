@@ -1,5 +1,5 @@
 use super::{
-    context::{FrameArenas, GraphicsContext},
+    context::GraphicsContext,
     draw::{DrawParam, DrawUniforms},
     gpu::{
         bind_group::{BindGroupBuilder, BindGroupCache, BindGroupLayoutBuilder},
@@ -22,7 +22,6 @@ use std::{collections::HashMap, hash::Hash};
 #[allow(missing_debug_implementations)]
 pub struct InternalCanvas<'a> {
     wgpu: &'a WgpuContext,
-    arenas: &'a FrameArenas,
     bind_group_cache: &'a mut BindGroupCache,
     pipeline_cache: &'a mut PipelineCache,
     sampler_cache: &'a mut SamplerCache,
@@ -31,9 +30,9 @@ pub struct InternalCanvas<'a> {
     uniform_arena: &'a mut GrowingBufferArena,
 
     shader: Shader,
-    shader_bind_group: Option<(&'a wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
+    shader_bind_group: Option<(wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
     text_shader: Shader,
-    text_shader_bind_group: Option<(&'a wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
+    text_shader_bind_group: Option<(wgpu::BindGroup, wgpu::BindGroupLayout, u32)>,
 
     shader_ty: Option<ShaderType>,
     dirty_pipeline: bool,
@@ -154,13 +153,9 @@ impl<'a> InternalCanvas<'a> {
         let fonts = &gfx.fonts;
         let uniform_arena = &mut gfx.uniform_arena;
 
-        let (arenas, mut pass) = {
+        let mut pass = {
             let fcx = gfx.fcx.as_mut().unwrap(/* see above */);
-
-            let pass = create_pass(&mut fcx.cmd);
-            let arenas = &fcx.arenas;
-
-            (arenas, pass)
+            create_pass(&mut fcx.cmd)
         };
 
         pass.set_blend_constant(wgpu::Color::BLACK);
@@ -194,7 +189,6 @@ impl<'a> InternalCanvas<'a> {
 
         Ok(InternalCanvas {
             wgpu,
-            arenas,
             bind_group_cache,
             pipeline_cache,
             sampler_cache,
@@ -237,7 +231,7 @@ impl<'a> InternalCanvas<'a> {
     ) {
         self.flush_text();
         self.dirty_pipeline = true;
-        self.shader_bind_group = Some((self.arenas.bind_groups.alloc(bind_group), layout, offset));
+        self.shader_bind_group = Some((bind_group, layout, offset));
     }
 
     pub fn reset_shader_params(&mut self) {
@@ -260,8 +254,7 @@ impl<'a> InternalCanvas<'a> {
     ) {
         self.flush_text();
         self.dirty_pipeline = true;
-        self.text_shader_bind_group =
-            Some((self.arenas.bind_groups.alloc(bind_group), layout, offset));
+        self.text_shader_bind_group = Some((bind_group, layout, offset));
     }
 
     pub fn reset_text_shader_params(&mut self) {
@@ -314,7 +307,6 @@ impl<'a> InternalCanvas<'a> {
         self.pass.set_scissor_rect(x, y, w, h);
     }
 
-    #[allow(unsafe_code)]
     pub fn draw_mesh(&mut self, mesh: &'a Mesh, image: &Image, param: DrawParam, scale: bool) {
         self.flush_text();
 
@@ -362,7 +354,7 @@ impl<'a> InternalCanvas<'a> {
 
         self.pass.set_bind_group(
             0,
-            &*self.arenas.bind_groups.alloc(uniform_bind_group),
+            &uniform_bind_group,
             &[uniform_alloc.offset as u32], // <- the dynamic offset
         );
 
@@ -434,11 +426,8 @@ impl<'a> InternalCanvas<'a> {
             uniforms.as_std140().as_bytes(),
         );
 
-        self.pass.set_bind_group(
-            0,
-            &*self.arenas.bind_groups.alloc(uniform_bind_group),
-            &[uniform_alloc.offset as u32],
-        );
+        self.pass
+            .set_bind_group(0, &uniform_bind_group, &[uniform_alloc.offset as u32]);
         self.pass.set_bind_group(2, &instances.bind_group, &[]);
 
         self.pass.set_vertex_buffer(0, mesh.verts.slice(..));
@@ -477,11 +466,8 @@ impl<'a> InternalCanvas<'a> {
             )
             .create(&self.wgpu.device, self.bind_group_cache);
 
-        self.pass.set_bind_group(
-            0,
-            &*self.arenas.bind_groups.alloc(text_uniforms_bind),
-            &[self.text_uniforms.offset as u32],
-        );
+        self.pass
+            .set_bind_group(0, &text_uniforms_bind, &[self.text_uniforms.offset as u32]);
 
         self.queuing_text = true;
 
@@ -497,12 +483,8 @@ impl<'a> InternalCanvas<'a> {
                 self.set_blend_mode(BlendMode::PREMULTIPLIED);
             }
             self.update_pipeline(ShaderType::Text);
-            self.text_renderer.draw_queued(
-                &self.wgpu.device,
-                &self.wgpu.queue,
-                self.arenas,
-                &mut self.pass,
-            );
+            self.text_renderer
+                .draw_queued(&self.wgpu.device, &self.wgpu.queue, &mut self.pass);
             if premul {
                 self.set_blend_mode(BlendMode::ALPHA);
             }
@@ -559,13 +541,12 @@ impl<'a> InternalCanvas<'a> {
             } else {
                 // the dummy group ensures the user's bind group is at index 3
                 groups.push(&dummy_layout);
-                self.pass
-                    .set_bind_group(2, &*self.arenas.bind_groups.alloc(dummy_group), &[]);
+                self.pass.set_bind_group(2, &dummy_group, &[]);
             }
 
             let shader = match ty {
                 ShaderType::Draw | ShaderType::Instance { .. } => {
-                    if let Some((bind_group, ref bind_group_layout, offset)) =
+                    if let Some((ref bind_group, ref bind_group_layout, offset)) =
                         self.shader_bind_group
                     {
                         self.pass.set_bind_group(3, bind_group, &[offset]);
@@ -575,7 +556,7 @@ impl<'a> InternalCanvas<'a> {
                     &self.shader
                 }
                 ShaderType::Text => {
-                    if let Some((bind_group, ref bind_group_layout, offset)) =
+                    if let Some((ref bind_group, ref bind_group_layout, offset)) =
                         self.text_shader_bind_group
                     {
                         self.pass.set_bind_group(3, bind_group, &[offset]);
@@ -587,61 +568,56 @@ impl<'a> InternalCanvas<'a> {
             };
 
             let layout = self.pipeline_cache.layout(&self.wgpu.device, &groups);
-            let pipeline = self
-                .arenas
-                .render_pipelines
-                .alloc(self.pipeline_cache.render_pipeline(
-                    &self.wgpu.device,
-                    RenderPipelineInfo {
-                        layout,
-                        vs: if let Some(vs_module) = &shader.vs_module {
-                            vs_module.clone()
-                        } else {
-                            match ty {
-                                ShaderType::Draw => self.draw_sm.clone(),
-                                ShaderType::Instance { ordered } => {
-                                    if ordered {
-                                        self.instance_sm.clone()
-                                    } else {
-                                        self.instance_unordered_sm.clone()
-                                    }
+            let pipeline = self.pipeline_cache.render_pipeline(
+                &self.wgpu.device,
+                RenderPipelineInfo {
+                    layout,
+                    vs: if let Some(vs_module) = &shader.vs_module {
+                        vs_module.clone()
+                    } else {
+                        match ty {
+                            ShaderType::Draw => self.draw_sm.clone(),
+                            ShaderType::Instance { ordered } => {
+                                if ordered {
+                                    self.instance_sm.clone()
+                                } else {
+                                    self.instance_unordered_sm.clone()
                                 }
-                                ShaderType::Text => self.text_sm.clone(),
                             }
-                        },
-                        fs: if let Some(fs_module) = &shader.fs_module {
-                            fs_module.clone()
-                        } else {
-                            match ty {
-                                ShaderType::Draw | ShaderType::Instance { .. } => {
-                                    self.draw_sm.clone()
-                                }
-                                ShaderType::Text => self.text_sm.clone(),
-                            }
-                        },
-                        vs_entry: "vs_main".into(),
-                        fs_entry: "fs_main".into(),
-                        samples: self.samples,
-                        format: self.format,
-                        blend: Some(wgpu::BlendState {
-                            color: self.blend_mode.color,
-                            alpha: self.blend_mode.alpha,
-                        }),
-                        depth: None,
-                        vertices: true,
-                        topology: match ty {
-                            ShaderType::Text => wgpu::PrimitiveTopology::TriangleStrip,
-                            _ => wgpu::PrimitiveTopology::TriangleList,
-                        },
-                        vertex_layout: match ty {
-                            ShaderType::Text => TextVertex::layout(),
-                            _ => Vertex::layout(),
-                        },
-                        cull_mode: None,
+                            ShaderType::Text => self.text_sm.clone(),
+                        }
                     },
-                ));
+                    fs: if let Some(fs_module) = &shader.fs_module {
+                        fs_module.clone()
+                    } else {
+                        match ty {
+                            ShaderType::Draw | ShaderType::Instance { .. } => self.draw_sm.clone(),
+                            ShaderType::Text => self.text_sm.clone(),
+                        }
+                    },
+                    vs_entry: "vs_main",
+                    fs_entry: "fs_main",
+                    samples: self.samples,
+                    format: self.format,
+                    blend: Some(wgpu::BlendState {
+                        color: self.blend_mode.color,
+                        alpha: self.blend_mode.alpha,
+                    }),
+                    depth: None,
+                    vertices: true,
+                    topology: match ty {
+                        ShaderType::Text => wgpu::PrimitiveTopology::TriangleStrip,
+                        _ => wgpu::PrimitiveTopology::TriangleList,
+                    },
+                    vertex_layout: match ty {
+                        ShaderType::Text => TextVertex::layout(),
+                        _ => Vertex::layout(),
+                    },
+                    cull_mode: None,
+                },
+            );
 
-            self.pass.set_pipeline(pipeline);
+            self.pass.set_pipeline(&pipeline);
         }
     }
 
@@ -658,8 +634,7 @@ impl<'a> InternalCanvas<'a> {
 
             self.curr_image = Some(image.view);
 
-            self.pass
-                .set_bind_group(1, &*self.arenas.bind_groups.alloc(image_bind), &[]);
+            self.pass.set_bind_group(1, &image_bind, &[]);
         }
     }
 
@@ -679,8 +654,7 @@ impl<'a> InternalCanvas<'a> {
 
             self.curr_image = Some(view);
 
-            self.pass
-                .set_bind_group(1, &*self.arenas.bind_groups.alloc(image_bind), &[]);
+            self.pass.set_bind_group(1, &image_bind, &[]);
         }
     }
 }

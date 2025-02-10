@@ -44,7 +44,7 @@ toml = "0.5"
 log = "0.4"
 lyon = "1.0"
 smart-default = "0.7"
-glam = { version = "0.29", features = ["mint"] }
+glam = { version = "0.29", features = ["mint", "bytemuck"] }
 # Has to be the same version of mint that our math lib uses here.
 mint = "0.5.9"
 gilrs = { version = "0.11", optional = true }

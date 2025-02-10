@@ -223,7 +223,6 @@ impl Mesh {
         self.index_count
     }
 
-    #[allow(unsafe_code)]
     fn create_verts(wgpu: &WgpuContext, vertices: &[Vertex]) -> wgpu::Buffer {
         wgpu.device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -233,7 +232,6 @@ impl Mesh {
             })
     }
 
-    #[allow(unsafe_code)]
     fn create_inds(wgpu: &WgpuContext, indices: &[u32]) -> wgpu::Buffer {
         wgpu.device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {

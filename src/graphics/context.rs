@@ -22,22 +22,13 @@ use crate::{
 use glyph_brush::FontId;
 use image as imgcrate;
 use std::{collections::HashMap, path::Path, sync::Arc};
-use typed_arena::Arena as TypedArena;
 use winit::dpi::{self, PhysicalPosition};
 
 pub(crate) struct FrameContext {
     pub cmd: wgpu::CommandEncoder,
     pub present: Image,
-    pub arenas: FrameArenas,
     pub frame: wgpu::SurfaceTexture,
     pub frame_view: wgpu::TextureView,
-}
-
-#[derive(Default)]
-pub(crate) struct FrameArenas {
-    pub buffers: TypedArena<wgpu::Buffer>,
-    pub render_pipelines: TypedArena<wgpu::RenderPipeline>,
-    pub bind_groups: TypedArena<wgpu::BindGroup>,
 }
 
 /// WGPU graphics context objects.
@@ -71,7 +62,6 @@ pub struct GraphicsContext {
     pub(crate) fcx: Option<FrameContext>,
     pub(crate) text: TextRenderer,
     pub(crate) fonts: HashMap<String, FontId>,
-    pub(crate) staging_belt: wgpu::util::StagingBelt,
     pub(crate) uniform_arena: GrowingBufferArena,
 
     pub(crate) draw_shader: wgpu::ShaderModule,
@@ -97,7 +87,6 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-    #[allow(unsafe_code)]
     /// Create a new graphics context
     pub fn new(
         game_id: &str,
@@ -196,7 +185,6 @@ impl GraphicsContext {
         (bind_group, layout)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn new_from_instance(
         #[allow(unused_variables)] game_id: &str,
         instance: wgpu::Instance,
@@ -322,7 +310,6 @@ impl GraphicsContext {
 
         let text = TextRenderer::new(&wgpu.device, image_bind_layout);
 
-        let staging_belt = wgpu::util::StagingBelt::new(1024);
         let uniform_arena = GrowingBufferArena::new(
             &wgpu.device,
             u64::from(wgpu.device.limits().min_uniform_buffer_offset_alignment),
@@ -421,7 +408,6 @@ impl GraphicsContext {
             fcx: None,
             text,
             fonts: HashMap::new(),
-            staging_belt,
             uniform_arena,
             draw_shader,
 
@@ -648,7 +634,6 @@ impl GraphicsContext {
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor::default()),
             present: self.frame().clone(),
-            arenas: FrameArenas::default(),
             frame,
             frame_view,
         });
@@ -680,11 +665,11 @@ impl GraphicsContext {
                 timestamp_writes: None,
             });
 
-            let sampler = &mut self
+            let sampler = self
                 .sampler_cache
                 .get(&self.wgpu.device, Sampler::default());
 
-            let (bind, layout) = self.bind_group(fcx.present.view, sampler.clone());
+            let (bind, layout) = self.bind_group(fcx.present.view, sampler);
 
             let layout = self.pipeline_cache.layout(&self.wgpu.device, &[&layout]);
             let copy = self.pipeline_cache.render_pipeline(
@@ -693,8 +678,8 @@ impl GraphicsContext {
                     layout,
                     vs: self.copy_shader.clone(),
                     fs: self.copy_shader.clone(),
-                    vs_entry: "vs_main".into(),
-                    fs_entry: "fs_main".into(),
+                    vs_entry: "vs_main",
+                    fs_entry: "fs_main",
                     samples: 1,
                     format: self.surface_config.format,
                     blend: None,
@@ -706,20 +691,14 @@ impl GraphicsContext {
                 },
             );
 
-            let copy = fcx.arenas.render_pipelines.alloc(copy);
-            let bind = fcx.arenas.bind_groups.alloc(bind);
-
-            present_pass.set_pipeline(copy);
-            present_pass.set_bind_group(0, &*bind, &[]);
+            present_pass.set_pipeline(&copy);
+            present_pass.set_bind_group(0, &bind, &[]);
             present_pass.draw(0..3, 0..1);
 
             std::mem::drop(present_pass);
 
-            self.staging_belt.finish();
             let _ = self.wgpu.queue.submit([fcx.cmd.finish()]);
             fcx.frame.present();
-
-            self.staging_belt.recall();
 
             Ok(())
         } else {
