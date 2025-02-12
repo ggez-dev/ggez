@@ -290,10 +290,11 @@ impl<'a, Uniforms: AsStd140> ShaderParamsBuilder<'a, Uniforms> {
             images,
             samplers,
             images_vs_visible: self.images_vs_visible,
-            last_tick: 0,
+            last_tick: None,
             _marker: PhantomData,
         };
         params.set_uniforms(ctx, self.uniforms);
+        params.last_tick = None;
         params
     }
 }
@@ -329,7 +330,7 @@ pub struct ShaderParams<Uniforms: AsStd140> {
     images: Vec<wgpu::TextureView>,
     samplers: Vec<wgpu::Sampler>,
     images_vs_visible: bool,
-    last_tick: usize,
+    last_tick: Option<usize>,
     _marker: PhantomData<Uniforms>,
 }
 
@@ -343,9 +344,9 @@ impl<Uniforms: AsStd140> ShaderParams<Uniforms> {
     ///
     /// When called, [`Canvas::set_shader_params`] (or [`Canvas::set_text_shader_params`]) **needs to be called again** for the new uniforms to take effect.
     pub fn set_uniforms(&mut self, ctx: &mut Context, uniforms: &Uniforms) {
-        if ctx.time.ticks() != self.last_tick {
+        if Some(ctx.time.ticks()) != self.last_tick {
             self.uniform_arena.free();
-            self.last_tick = ctx.time.ticks();
+            self.last_tick = Some(ctx.time.ticks());
         }
         let alloc = self
             .uniform_arena
