@@ -240,6 +240,11 @@ impl Mesh {
                 usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             })
     }
+
+    /// Returns the bounding box of the vertices of this mesh.
+    pub fn bounding_box(&self) -> Rect {
+        self.bounds
+    }
 }
 
 impl Drawable for Mesh {
@@ -252,10 +257,6 @@ impl Drawable for Mesh {
             },
             param.into(),
         );
-    }
-
-    fn dimensions(&self, _gfx: &impl Has<GraphicsContext>) -> Rect {
-        self.bounds
     }
 }
 
@@ -276,10 +277,6 @@ pub struct Quad;
 impl Drawable for Quad {
     fn draw(&self, canvas: &mut Canvas, param: impl Into<DrawParam>) {
         canvas.default_resources().mesh.clone().draw(canvas, param);
-    }
-
-    fn dimensions(&self, _gfx: &impl Has<GraphicsContext>) -> Rect {
-        Rect::one()
     }
 }
 

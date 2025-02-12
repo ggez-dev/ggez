@@ -1,6 +1,6 @@
 use super::{
     gpu::text::{Extra, TextRenderer},
-    Canvas, Color, Draw, DrawParam, Drawable, GraphicsContext, Rect,
+    Canvas, Color, Draw, DrawParam, Drawable, GraphicsContext,
 };
 use crate::{context::Has, filesystem::Filesystem, GameError, GameResult};
 use glyph_brush::{ab_glyph, FontId, GlyphCruncher};
@@ -286,16 +286,6 @@ impl Text {
 impl Drawable for Text {
     fn draw(&self, canvas: &mut Canvas, param: impl Into<DrawParam>) {
         canvas.push_draw(Draw::BoundedText { text: self.clone() }, param.into());
-    }
-
-    fn dimensions(&self, gfx: &impl Has<GraphicsContext>) -> Rect {
-        let bounds = self.measure(gfx).unwrap_or(glam::Vec2::splat(1.0).into());
-        Rect {
-            x: 0.,
-            y: 0.,
-            w: bounds.x,
-            h: bounds.y,
-        }
     }
 }
 

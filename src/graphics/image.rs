@@ -418,15 +418,6 @@ impl Drawable for Image {
             param.into(),
         );
     }
-
-    fn dimensions(&self, _gfx: &impl Has<GraphicsContext>) -> Rect {
-        Rect {
-            x: 0.,
-            y: 0.,
-            w: self.width() as _,
-            h: self.height() as _,
-        }
-    }
 }
 
 /// An image which is sized relative to the screen.
